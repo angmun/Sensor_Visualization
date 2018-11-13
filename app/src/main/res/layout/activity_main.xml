@@ -23,6 +23,7 @@
         android:layout_marginEnd="0dp"
         android:layout_marginStart="0dp"
         android:background="@color/colorPrimary"
+        app:labelVisibilityMode="labeled"
         app:itemBackground="@color/colorPrimary"
         app:itemIconTint="@color/white"
         app:itemTextColor="@color/white"

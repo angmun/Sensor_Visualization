@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
             switch (item.getItemId()) {
                 case R.id.sensorDraw:
+                    toggleSetting();
                     return true;
                 case R.id.touchDraw:
                     return true;
@@ -65,17 +66,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onStart() {
         super.onStart();
-        // Register a listener for the proximity sensory
-        sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
-        // Register a listener for the gyroscope sensor
-        sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
-        // Now we are ready to start
-        this.begin = true;
+
+    }
+
+    private void toggleSetting(){
+        this.begin = !begin;
+        //Initialize bitmap
+        this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        // Register a listener for the proximity sensory
+        sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
+        // Register a listener for the gyroscope sensor
+        sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
+        // Now we are ready to start
     }
 
     /**
@@ -90,12 +97,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
-        Log.i("Scaling", String.valueOf(mapRange(0, 255, -3.14f)));
-        Log.i("Scaling", String.valueOf(mapRange(0, 255, 0f)));
-        Log.i("Scaling", String.valueOf(mapRange(0, 255, 3.14f)));
-
-        Log.i("Scaling", String.valueOf(mapRange(0, 255, -6.28f)));
-        Log.i("Scaling", String.valueOf(mapRange(0, 255, 3.14f)));
+//        Log.i("Scaling", String.valueOf(mapRange(0, 255, -3.14f)));
+//        Log.i("Scaling", String.valueOf(mapRange(0, 255, 0f)));
+//        Log.i("Scaling", String.valueOf(mapRange(0, 255, 3.14f)));
+//
+//        Log.i("Scaling", String.valueOf(mapRange(0, 255, -6.28f)));
+//        Log.i("Scaling", String.valueOf(mapRange(0, 255, 3.14f)));
 
         imageView = findViewById(R.id.imageView);
 
@@ -110,7 +117,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
     }
 
     /**
@@ -133,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * @param x location to draw a rectangle (x)
      * @param y location to draw rectangle (y)
      */
-    public void drawSomething(int x, int y) {
+    public void drawSomething(int x, int y, Bitmap bitmap) {
 
         int width = imageView.getWidth();
         //int width = 300;
@@ -143,26 +149,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (width > 0) {
 
             int color = this.color;
-            int rectWidth = width / 6;
-            int rectHeight = height / 6;
+            //int rectWidth = width / 6;
+            //int rectHeight = height / 6;
+            int radius = height/9;
 
             paint.setARGB(color, color, color, 1);
 
             Log.i("Main_Activity", String.valueOf(width));
+//
+//            int locX = mod(x , (width - rectWidth));
+//            int locY = mod(y , (height - rectHeight));
 
-            int locX = mod(x , (width - rectWidth));
-            int locY = mod(y , (height - rectHeight));
+            int locX = mod(x, width);
+            int locY = mod(y, height);
 
-            //Initialize bitmap
-            bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             //Associate imageview with the bitmap
             imageView.setImageBitmap(bitmap);
             //Initialize canvas
             canvas = new Canvas(bitmap);
             //Make a rectangle with dimensions
-            rect.set(locX + rectWidth, locY + rectHeight, locX, locY);
+            //rect.set(locX + rectWidth, locY + rectHeight, locX, locY);
             //Draw the rectangle
-            canvas.drawRect(rect, paint);
+            //canvas.drawRect(rect, paint);
+            canvas.drawCircle(locX, locY, radius, paint);
             //Invalidate
             imageView.invalidate();
         }
@@ -198,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     this.x = (int) (this.x + (20 * gyroscopeValues[1]));
                     this.y = (int) (this.y + (20 * gyroscopeValues[0]));
 
-                    drawSomething(this.x, this.y);
+                    drawSomething(this.x, this.y, this.bitmap);
 
                     break;
                 case Sensor.TYPE_LIGHT:
