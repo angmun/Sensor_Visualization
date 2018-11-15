@@ -1,6 +1,8 @@
 package com.example.mtvan15.ui_sye;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -12,6 +14,8 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -21,6 +25,14 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.Random;
+
+import be.tarsos.dsp.AudioDispatcher;
+import be.tarsos.dsp.AudioEvent;
+import be.tarsos.dsp.AudioProcessor;
+import be.tarsos.dsp.io.android.AudioDispatcherFactory;
+import be.tarsos.dsp.pitch.PitchDetectionHandler;
+import be.tarsos.dsp.pitch.PitchDetectionResult;
+import be.tarsos.dsp.pitch.PitchProcessor;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -38,11 +50,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private Rect rect = new Rect();
 
+    private TextView audioInfo;
+
     private int color = 0;
     private int x = -1;
     private int y = -1;
 
     private boolean begin = false;
+
+    // Permissions Code!/////////////////////////////////////
+    private final static int PERMISSION_REQUEST_CODE = 999;
+    private boolean permissions_granted;
+    private final static String LOGTAG =
+            MainActivity.class.getSimpleName();
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -67,6 +87,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStart() {
         super.onStart();
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            // we have only asked for FINE LOCATION
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                this.permissions_granted = true;
+                Log.i(LOGTAG, "Audio Recording Allowed");
+            }
+            else {
+                this.permissions_granted = false;
+                Log.i(LOGTAG, "Audio Recording Not Allowed");
+            }
+        }
     }
 
     private void toggleSetting(){
@@ -94,6 +130,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // check permissions
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[] { Manifest.permission.RECORD_AUDIO },
+                    PERMISSION_REQUEST_CODE
+            );
+        }
+
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
@@ -117,6 +164,34 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
+        // Audio Stuff For now
+        // Audio Instance Variables
+        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
+        this.audioInfo = findViewById(R.id.audioInfo);
+        PitchDetectionHandler pdh = new PitchDetectionHandler() {
+            @Override
+            public void handlePitch(PitchDetectionResult pitchDetectionResult, AudioEvent audioEvent) {
+                final float pitchInHz = pitchDetectionResult.getPitch();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        processPitch(pitchInHz);
+                    }
+                });
+            }
+        };
+
+        AudioProcessor pitchProcessor = new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.FFT_YIN, 22050, 1024, pdh);
+        dispatcher.addAudioProcessor(pitchProcessor);
+
+        Thread audioThread = new Thread(dispatcher, "Audio Thread");
+        audioThread.start();
+    }
+
+    public void processPitch(float pitchInHz) {
+
+        this.audioInfo.setText("" + pitchInHz);
     }
 
     /**

@@ -10,12 +10,12 @@
     <item
         android:id="@+id/sensorDraw"
         android:icon="@drawable/ic_baseline_settings_remote_24px"
-        android:title="Sensor Drawing" />
+        android:title="Sensor Draw" />
 
     <item
         android:id="@+id/touchDraw"
         android:icon="@drawable/ic_baseline_touch_app_24px"
-        android:title="Touch Drawing" />
+        android:title="Touch Draw" />
 
     <item
         android:id="@+id/save"
