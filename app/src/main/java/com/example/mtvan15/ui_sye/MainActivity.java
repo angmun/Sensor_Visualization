@@ -12,6 +12,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.Image;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -289,8 +290,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //                // scale the y value
 //                this.y = (int)((imageView.getHeight())*(gyroscopeValues[1] + 2 * Math.PI)/(4 * Math.PI));
 
-                    this.x = (int) (this.x + (20 * gyroscopeValues[1]));
-                    this.y = (int) (this.y + (20 * gyroscopeValues[0]));
+//                    this.x = (int) (this.x + (20 * gyroscopeValues[1]));
+//                    this.y = (int) (this.y + (20 * gyroscopeValues[0]));
+
+                    this.x = mapRange(0, imageView.getWidth(), gyroscopeValues[1]);
+                    this.y = mapRange(0, imageView.getHeight(), gyroscopeValues[0]);
 
                     drawSomething(this.x, this.y, this.bitmap);
 
