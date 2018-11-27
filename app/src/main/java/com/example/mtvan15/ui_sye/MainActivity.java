@@ -2,6 +2,7 @@ package com.example.mtvan15.ui_sye;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -12,6 +13,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
@@ -71,9 +73,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
             switch (item.getItemId()) {
                 case R.id.sensorDraw:
-                    toggleSetting();
+                    enableSensor();
                     return true;
                 case R.id.touchDraw:
+                    return true;
+                case R.id.settings:
+                    toSettings();
                     return true;
             }
             return false;
@@ -105,7 +110,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    private void toggleSetting(){
+    private void toSettings(){
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
+    }
+
+    private void enableSensor(){
         this.begin = !begin;
         //Initialize bitmap
         this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
