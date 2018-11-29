@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.hardware.Sensor;
@@ -32,15 +33,18 @@ import java.util.Random;
 import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.AudioEvent;
 import be.tarsos.dsp.AudioProcessor;
+import be.tarsos.dsp.SilenceDetector;
 import be.tarsos.dsp.io.android.AudioDispatcherFactory;
 import be.tarsos.dsp.pitch.PitchDetectionHandler;
 import be.tarsos.dsp.pitch.PitchDetectionResult;
 import be.tarsos.dsp.pitch.PitchProcessor;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
+public class MainActivity extends AppCompatActivity implements SensorEventListener, AudioProcessor {
 
 
     float magnitude = 3.14f;
+    float colorMagnitude = 0f;
+    float lightMagnitude = 0f;
 
     private Button button;
     private Canvas canvas;
@@ -50,12 +54,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sensorManager;
     private Sensor lightSensor;
     private Sensor gyroscopeSensor;
+    private SilenceDetector silenceDetector;
+    private int sizeRadius = 0;
+    private double threshold;
 
     private Rect rect = new Rect();
 
     private TextView audioInfo;
 
-    private int color = 0;
+    private int color[] = {0, 0, 0};
+    private int opacity = 0;
     private int x = -1;
     private int y = -1;
 
@@ -155,13 +163,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
-//        Log.i("Scaling", String.valueOf(mapRange(0, 255, -3.14f)));
-//        Log.i("Scaling", String.valueOf(mapRange(0, 255, 0f)));
-//        Log.i("Scaling", String.valueOf(mapRange(0, 255, 3.14f)));
-//
-//        Log.i("Scaling", String.valueOf(mapRange(0, 255, -6.28f)));
-//        Log.i("Scaling", String.valueOf(mapRange(0, 255, 3.14f)));
-
         imageView = findViewById(R.id.imageView);
 
         this.x = imageView.getWidth() /2;
@@ -176,9 +177,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
+
         // Audio Stuff For now
         // Audio Instance Variables
         AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
+
+        //Setup loudness detection.
+        this.threshold = SilenceDetector.DEFAULT_SILENCE_THRESHOLD;
+        silenceDetector = new SilenceDetector(threshold, false);
+        dispatcher.addAudioProcessor(silenceDetector);
+        dispatcher.addAudioProcessor(this);
+
+
         this.audioInfo = findViewById(R.id.audioInfo);
         PitchDetectionHandler pdh = new PitchDetectionHandler() {
             @Override
@@ -202,7 +212,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void processPitch(float pitchInHz) {
 
-        this.audioInfo.setText("" + pitchInHz);
+        if(pitchInHz != -1) {
+
+            this.color = soundToColor(pitchInHz);
+        }
     }
 
     /**
@@ -212,12 +225,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * @param val value to scale that is within range magnitude
      * @return scaled number between min and max
      */
-    public int mapRange(int min, int max, float val) {
-        if (Math.abs(val) > magnitude) {
-            magnitude = Math.abs(val);
+    public int mapRange(int aCase, int min, int max, float val) {
+
+        switch(aCase){
+            case 0:
+                if (Math.abs(val) > magnitude) {
+                    magnitude = Math.abs(val);
+                }
+
+                return min + (((int)(val * 1000) + (int)(magnitude*1000))*(max - min) / (int)(magnitude*2000));
+            case 1:
+                if (Math.abs(val) > colorMagnitude) {
+                    colorMagnitude = Math.abs(val);
+                }
+
+                return min + (((int)(val * 1000) + (int)(colorMagnitude*1000))*(max - min) / (int)(colorMagnitude*2000));
+            case 2:
+                if (Math.abs(val) > lightMagnitude) {
+                    lightMagnitude = Math.abs(val);
+                }
+
+                return min + (((int)(val * 1000) + (int)(lightMagnitude*1000))*(max - min) / (int)(lightMagnitude*2000));
         }
 
-        return min + (((int)(val * 1000) + (int)(magnitude*1000))*(max - min) / (int)(magnitude*2000));
+        return -1;
     }
 
     /**
@@ -233,13 +264,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //int height = 300;
 
         if (width > 0) {
-
-            int color = this.color;
             //int rectWidth = width / 6;
             //int rectHeight = height / 6;
             int radius = height/9;
 
-            paint.setARGB(color, color, color, 1);
+            this.audioInfo.setText(String.format("%d %d %d", this.color[0], this.color[1], this.color[2]));
+
+            paint.setARGB(this.opacity, this.color[0], this.color[1],this.color[2]);
 
             Log.i("Main_Activity", String.valueOf(width));
 //
@@ -284,24 +315,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     // float values between 0 and 2pi
                     Log.i("Main_Activity", String.valueOf(gyroscopeValues[0]));
 
-//                // scale the x value
-//                this.x = (int)((imageView.getWidth())*(gyroscopeValues[0] + 2 * Math.PI)/(4 * Math.PI));
-//
-//                // scale the y value
-//                this.y = (int)((imageView.getHeight())*(gyroscopeValues[1] + 2 * Math.PI)/(4 * Math.PI));
-
-//                    this.x = (int) (this.x + (20 * gyroscopeValues[1]));
-//                    this.y = (int) (this.y + (20 * gyroscopeValues[0]));
-
-                    this.x = mapRange(0, imageView.getWidth(), gyroscopeValues[1]);
-                    this.y = mapRange(0, imageView.getHeight(), gyroscopeValues[0]);
+                    this.x = mapRange(0,0, imageView.getWidth(), gyroscopeValues[1]);
+                    this.y = mapRange(0,0, imageView.getHeight(), gyroscopeValues[0]);
 
                     drawSomething(this.x, this.y, this.bitmap);
 
                     break;
                 case Sensor.TYPE_LIGHT:
                     float currentValue = sensorEvent.values[0];
-                    this.color = ((int) currentValue) % 255;
+                    this.opacity = 255 - mapRange(2, 0, 255, currentValue);
                     break;
             }
 
@@ -318,6 +340,63 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
+
+    public int[] soundToColor(float hertz){
+
+        if (hertz > 0) {
+            // Map Hz from 25.4 and 1760 -----> 0 and 1530
+            int color = mapRange(1, 0, 1530, hertz);
+            int[] returnColor = new int[3];
+            int mod = color % 255;
+
+            if (color <= 255) {
+                returnColor[0] = 255;
+                returnColor[1] = mod;
+                returnColor[2] = 0;
+            } else if (color <= 255 * 2) {
+                returnColor[0] = 255 - mod;
+                returnColor[1] = 255;
+                returnColor[2] = 0;
+            } else if (color <= 255 * 3) {
+                returnColor[0] = 0;
+                returnColor[1] = 255;
+                returnColor[2] = mod;
+            } else if (color <= 255 * 4) {
+                returnColor[0] = 0;
+                returnColor[1] = 255 - mod;
+                returnColor[2] = 255;
+            } else if (color <= 255 * 5) {
+                returnColor[0] = mod;
+                returnColor[1] = 0;
+                returnColor[2] = 255;
+            } else {
+                returnColor[0] = 255;
+                returnColor[1] = 0;
+                returnColor[2] = 255 - mod;
+            }
+
+            return returnColor;
+
+        }
+
+        return new int[]{0, 0, 0};
+    }
+
+    @Override
+    public boolean process(AudioEvent audioEvent) {
+        handleSound();
+        return true;
+    }
+
+    private void handleSound(){
+        if(silenceDetector.currentSPL() > threshold){
+            // See if this doesn't crash
+        }
+    }
+    @Override
+    public void processingFinished() {
 
     }
 }
