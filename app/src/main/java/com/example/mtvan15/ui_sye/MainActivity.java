@@ -15,6 +15,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.Image;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -43,8 +44,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
     float magnitude = 3.14f;
-    float colorMagnitude = 0f;
-    float lightMagnitude = 0f;
+    float colorMagnitude = 1f;
+    float lightMagnitude = 1f;
 
     private Button button;
     private Canvas canvas;
@@ -55,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor lightSensor;
     private Sensor gyroscopeSensor;
     private SilenceDetector silenceDetector;
-    private int sizeRadius = 0;
+    private int sizeRadius = 1;
     private double threshold;
 
     private Rect rect = new Rect();
@@ -89,6 +90,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 case R.id.settings:
                     toSettings();
                     return true;
+                case R.id.save:
+                    saveImage();
+                    return true;
             }
             return false;
         }
@@ -107,14 +111,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            // we have only asked for FINE LOCATION
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            Log.i("SENSORP", String.valueOf(grantResults[0]));
+            Log.i("SENSORP", String.valueOf(grantResults[1]));
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                 this.permissions_granted = true;
-                Log.i(LOGTAG, "Audio Recording Allowed");
+                Log.i(LOGTAG, "Audio and External Storage Allowed");
+                createAudioThread();
             }
             else {
                 this.permissions_granted = false;
-                Log.i(LOGTAG, "Audio Recording Not Allowed");
+                Log.i(LOGTAG, "Audio and External Storage Not Allowed");
             }
         }
     }
@@ -125,14 +131,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void enableSensor(){
-        this.begin = !begin;
-        //Initialize bitmap
         this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
+        this.begin = !begin;
+    }
+
+    private void saveImage(){
+        // Save image to gallery
+        MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
+        // Push image to firebase if there is an internet connection
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+            this.permissions_granted = true;
+            createAudioThread();
+        }
         // Register a listener for the proximity sensory
         sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
         // Register a listener for the gyroscope sensor
@@ -140,44 +156,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Now we are ready to start
     }
 
-    /**
-     * OnCreate: setup bottomNavigationView, sensorManager, lightSensor, and other sensors
-     * @param savedInstanceState
-     */
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        // check permissions
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[] { Manifest.permission.RECORD_AUDIO },
-                    PERMISSION_REQUEST_CODE
-            );
-        }
-
-        BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
-        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
-
-        imageView = findViewById(R.id.imageView);
-
-        this.x = imageView.getWidth() /2;
-        this.y = imageView.getHeight() / 2;
-
-        paint = new Paint();
-
-        paint.setColor(ResourcesCompat.getColor(getResources(), R.color.colorAccent, null));
-
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-
-        lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-        gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
-
+    public void createAudioThread(){
         // Audio Stuff For now
         // Audio Instance Variables
         AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
@@ -208,6 +187,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         Thread audioThread = new Thread(dispatcher, "Audio Thread");
         audioThread.start();
+
+    }
+
+    /**
+     * OnCreate: setup bottomNavigationView, sensorManager, lightSensor, and other sensors
+     * @param savedInstanceState
+     */
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // check all permissions
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[] { Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    PERMISSION_REQUEST_CODE
+            );
+        }
+
+        BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
+        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+
+        imageView = findViewById(R.id.imageView);
+
+        this.x = imageView.getWidth() /2;
+        this.y = imageView.getHeight() / 2;
+
+        paint = new Paint();
+
+        paint.setColor(ResourcesCompat.getColor(getResources(), R.color.colorAccent, null));
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
     }
 
     public void processPitch(float pitchInHz) {
@@ -349,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // Map Hz from 25.4 and 1760 -----> 0 and 1530
             int color = mapRange(1, 0, 1530, hertz);
             int[] returnColor = new int[3];
-            int mod = color % 255;
+            int mod = mod(color, 255);
 
             if (color <= 255) {
                 returnColor[0] = 255;
