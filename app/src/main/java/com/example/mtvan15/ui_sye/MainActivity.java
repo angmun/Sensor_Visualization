@@ -43,9 +43,15 @@ import be.tarsos.dsp.pitch.PitchProcessor;
 public class MainActivity extends AppCompatActivity implements SensorEventListener, AudioProcessor {
 
 
-    float magnitude = 3.14f;
-    float colorMagnitude = 1f;
-    float lightMagnitude = 1f;
+    private float magnitude = 3.14f;
+    private float colorMagnitude = 1f;
+    private float lightMagnitude = 1f;
+    private float sizeMagnitude = 1f;
+
+    private boolean gyroIsEnabled = true;
+    private boolean touchIsEnabled = false;
+    private boolean settings = false;
+    private boolean audioThread = false;
 
     private Button button;
     private Canvas canvas;
@@ -59,6 +65,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int sizeRadius = 1;
     private double threshold;
 
+    private TouchListener touchListener;
+
     private Rect rect = new Rect();
 
     private TextView audioInfo;
@@ -67,6 +75,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int opacity = 0;
     private int x = -1;
     private int y = -1;
+    private int width;
+    private int height;
 
     private boolean begin = false;
 
@@ -83,11 +93,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
             switch (item.getItemId()) {
                 case R.id.sensorDraw:
-                    enableSensor();
+                    enableSensor(true);
                     return true;
                 case R.id.touchDraw:
+                    enableSensor(false);
                     return true;
                 case R.id.settings:
+                    begin = false;
                     toSettings();
                     return true;
                 case R.id.save:
@@ -126,13 +138,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void toSettings(){
+        settings = true;
         Intent intent = new Intent(this, SettingsActivity.class);
         startActivity(intent);
     }
 
-    private void enableSensor(){
+    private void enableSensor(boolean gyro){
+        if (gyro) {
+            gyroIsEnabled = true;
+            touchIsEnabled = false;
+        } else {
+            gyroIsEnabled = false;
+            touchIsEnabled = true;
+        }
         this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
-        this.begin = !begin;
+        this.begin = true;
+        width = imageView.getWidth();
+        height = imageView.getHeight();
     }
 
     private void saveImage(){
@@ -144,7 +166,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
+
+        Log.i("MagResume", String.valueOf(this.height));
+
+        if (settings) {
+            begin = true;
+            settings = false;
+        }
+
+        if (!audioThread && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
             this.permissions_granted = true;
             createAudioThread();
@@ -159,6 +189,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void createAudioThread(){
         // Audio Stuff For now
         // Audio Instance Variables
+        audioThread = true;
         AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
 
         //Setup loudness detection.
@@ -213,6 +244,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
         imageView = findViewById(R.id.imageView);
+        this.touchListener = new TouchListener();
+        imageView.setOnTouchListener(this.touchListener);
 
         this.x = imageView.getWidth() /2;
         this.y = imageView.getHeight() / 2;
@@ -245,6 +278,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      */
     public int mapRange(int aCase, int min, int max, float val) {
 
+        // REFORMAT THIS. THIS KIND OF LOOKS LIKE CRAP....
+
         switch(aCase){
             case 0:
                 if (Math.abs(val) > magnitude) {
@@ -264,6 +299,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
 
                 return min + (((int)(val * 1000) + (int)(lightMagnitude*1000))*(max - min) / (int)(lightMagnitude*2000));
+            case 3:
+                if (Math.abs(val) > sizeMagnitude) {
+                    sizeMagnitude = Math.abs(val);
+                }
+
+                return min + (((int)(val * 1000) + (int)(sizeMagnitude*1000))*(max - min) / (int)(sizeMagnitude*2000));
         }
 
         return -1;
@@ -275,22 +316,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * @param y location to draw rectangle (y)
      */
     public void drawSomething(int x, int y, Bitmap bitmap) {
-
-        int width = imageView.getWidth();
-        //int width = 300;
-        int height = imageView.getHeight();
         //int height = 300;
 
         if (width > 0) {
             //int rectWidth = width / 6;
             //int rectHeight = height / 6;
-            int radius = height/9;
+            int radius = this.sizeRadius;
 
             this.audioInfo.setText(String.format("%d %d %d", this.color[0], this.color[1], this.color[2]));
 
             paint.setARGB(this.opacity, this.color[0], this.color[1],this.color[2]);
 
-            Log.i("Main_Activity", String.valueOf(width));
 //
 //            int locX = mod(x , (width - rectWidth));
 //            int locY = mod(y , (height - rectHeight));
@@ -326,17 +362,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(begin) {
 
             switch (sensorType) {
+
                 case Sensor.TYPE_GYROSCOPE:
                     // x y z in indices 0 1 2
-                    float[] gyroscopeValues = sensorEvent.values;
+                    if(gyroIsEnabled) {
+                        float[] gyroscopeValues = sensorEvent.values;
 
-                    // float values between 0 and 2pi
-                    Log.i("Main_Activity", String.valueOf(gyroscopeValues[0]));
+                        // float values between 0 and 2pi
+                        Log.i("Main_Activity", String.valueOf(gyroscopeValues[0]));
 
-                    this.x = mapRange(0,0, imageView.getWidth(), gyroscopeValues[1]);
-                    this.y = mapRange(0,0, imageView.getHeight(), gyroscopeValues[0]);
-
+                        this.x = mapRange(0, 0, imageView.getWidth(), gyroscopeValues[1]);
+                        this.y = mapRange(0, 0, imageView.getHeight(), gyroscopeValues[0]);
+                    }else if (this.touchIsEnabled){
+                        float[] coordinates = this.touchListener.getCoordinates();
+                        this.x = (int)coordinates[0];
+                        this.y = (int)coordinates[1];
+                    }
                     drawSomething(this.x, this.y, this.bitmap);
+
 
                     break;
                 case Sensor.TYPE_LIGHT:
@@ -410,7 +453,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void handleSound(){
         if(silenceDetector.currentSPL() > threshold){
-            // See if this doesn't crash
+            this.sizeRadius = mapRange(3, 5, height, (float) silenceDetector.currentSPL());
+
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    audioInfo.setText(audioInfo.getText() + String.valueOf(sizeRadius));
+                }
+            });
         }
     }
     @Override
