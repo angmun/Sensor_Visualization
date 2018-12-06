@@ -29,6 +29,11 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
 import java.util.Random;
 
 import be.tarsos.dsp.AudioDispatcher;
@@ -89,6 +94,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Determine whether sensors can start writing values
     private boolean begin = false;
+
+    // Setup Firebase Cloud Storage
+    private StorageReference mStorageRef;
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
+
 
     // Keep track of permissions for the application
     private final static int PERMISSION_REQUEST_CODE = 999;
@@ -154,6 +164,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+
+        // Setup Firebase Storage
+        mStorageRef = FirebaseStorage.getInstance().getReference();
+        DatabaseReference myRef = database.getReference("message");
 
         imageView = findViewById(R.id.imageView);
         this.touchListener = new TouchListener();

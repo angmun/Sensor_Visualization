@@ -5,34 +5,34 @@ import android.graphics.Canvas;
 public class Spiral {
 
     // Keep track of the coordinates you want to draw at
-    private int x;
-    private int y;
+        private int x;
+        private int y;
 
-    private double angleStep;
-    private double currAngle;
-    private int dimX;
-    private int dimY;
-    private int maxRadius;
-    private int radius;
-    private int radiusStep;
+        private double angleStep;
+        private double currAngle;
+        private int dimX;
+        private int dimY;
+        private int maxRadius;
+        private int radius;
+        private int radiusStep;
 
     public Spiral(int dim1, int dim2){
-        // Keep track of the width and height of the window
-        dimX = dim1;
-        dimY = dim2;
+            // Keep track of the width and height of the window
+            dimX = dim1;
+            dimY = dim2;
 
-        // Keep track of the minimum dimension so that it will always draw on the screen
-        if(dimX < dimY) {
-            maxRadius = dimX;
-        }else{
-            maxRadius = dimY;
-        }
+            // Keep track of the minimum dimension so that it will always draw on the screen
+            if(dimX < dimY) {
+                maxRadius = dimX;
+            }else{
+                maxRadius = dimY;
+            }
 
-        currAngle = 0.0;
-        angleStep = Math.PI / 32;
+            currAngle = 0.0;
+            angleStep = Math.PI / 32;
 
-        this.x = 0;
-        this.y = 0;
+            this.x = 0;
+            this.y = 0;
 
         radiusStep = 1;
         radius = 1;
