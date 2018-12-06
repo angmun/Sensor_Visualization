@@ -42,76 +42,64 @@ import be.tarsos.dsp.pitch.PitchProcessor;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener, AudioProcessor {
 
-
+    // Values to keep track of the largest magnitudes seen so far
     private float magnitude = 3.14f;
     private float colorMagnitude = 1f;
     private float lightMagnitude = 1f;
     private float sizeMagnitude = 1f;
 
+    // Check whether certain sensors are enabled
     private boolean gyroIsEnabled = true;
     private boolean touchIsEnabled = false;
     private boolean settings = false;
     private boolean audioThread = false;
 
+    // !! Spiral Code !!
+    private boolean spiralEnabled = true;
+
+    // Setup UI View Elements
     private Button button;
     private Canvas canvas;
     private Paint paint;
     private Bitmap bitmap;
     private ImageView imageView;
+    private TextView audioInfo;
+
+    // Sensor Manager and the Sensors
     private SensorManager sensorManager;
     private Sensor lightSensor;
     private Sensor gyroscopeSensor;
     private SilenceDetector silenceDetector;
-    private int sizeRadius = 1;
     private double threshold;
 
+    // Keep a reference to our touchListener class
     private TouchListener touchListener;
 
-    private Rect rect = new Rect();
+    // Keep a reference to a Spiral Class
+    private Spiral spiral;
 
-    private TextView audioInfo;
-
+    // Important drawing elements for the canvas (parameters)
     private int color[] = {0, 0, 0};
+    private int sizeRadius = 1;
     private int opacity = 0;
     private int x = -1;
     private int y = -1;
     private int width;
     private int height;
 
+    // Determine whether sensors can start writing values
     private boolean begin = false;
 
-    // Permissions Code!/////////////////////////////////////
+    // Keep track of permissions for the application
     private final static int PERMISSION_REQUEST_CODE = 999;
     private boolean permissions_granted;
     private final static String LOGTAG =
             MainActivity.class.getSimpleName();
 
-    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
-            = new BottomNavigationView.OnNavigationItemSelectedListener() {
-
-        @Override
-        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.sensorDraw:
-                    enableSensor(true);
-                    return true;
-                case R.id.touchDraw:
-                    enableSensor(false);
-                    return true;
-                case R.id.settings:
-                    begin = false;
-                    toSettings();
-                    return true;
-                case R.id.save:
-                    saveImage();
-                    return true;
-            }
-            return false;
-        }
-    };
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * OnStart method to setup the listeners for the sensorManager sensors that are in use
+     * onStart( ) life cycle method
      */
     @Override
     protected void onStart() {
@@ -119,50 +107,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            Log.i("SENSORP", String.valueOf(grantResults[0]));
-            Log.i("SENSORP", String.valueOf(grantResults[1]));
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                this.permissions_granted = true;
-                Log.i(LOGTAG, "Audio and External Storage Allowed");
-                createAudioThread();
-            }
-            else {
-                this.permissions_granted = false;
-                Log.i(LOGTAG, "Audio and External Storage Not Allowed");
-            }
-        }
-    }
-
-    private void toSettings(){
-        settings = true;
-        Intent intent = new Intent(this, SettingsActivity.class);
-        startActivity(intent);
-    }
-
-    private void enableSensor(boolean gyro){
-        if (gyro) {
-            gyroIsEnabled = true;
-            touchIsEnabled = false;
-        } else {
-            gyroIsEnabled = false;
-            touchIsEnabled = true;
-        }
-        this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
-        this.begin = true;
-        width = imageView.getWidth();
-        height = imageView.getHeight();
-    }
-
-    private void saveImage(){
-        // Save image to gallery
-        MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
-        // Push image to firebase if there is an internet connection
-    }
-
+    /**
+     * onResume( ) life cycle method. Register the sensorListeners in here assuring they are ready for data.
+     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -186,43 +133,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Now we are ready to start
     }
 
-    public void createAudioThread(){
-        // Audio Stuff For now
-        // Audio Instance Variables
-        audioThread = true;
-        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
-
-        //Setup loudness detection.
-        this.threshold = SilenceDetector.DEFAULT_SILENCE_THRESHOLD;
-        silenceDetector = new SilenceDetector(threshold, false);
-        dispatcher.addAudioProcessor(silenceDetector);
-        dispatcher.addAudioProcessor(this);
-
-
-        this.audioInfo = findViewById(R.id.audioInfo);
-        PitchDetectionHandler pdh = new PitchDetectionHandler() {
-            @Override
-            public void handlePitch(PitchDetectionResult pitchDetectionResult, AudioEvent audioEvent) {
-                final float pitchInHz = pitchDetectionResult.getPitch();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        processPitch(pitchInHz);
-                    }
-                });
-            }
-        };
-
-        AudioProcessor pitchProcessor = new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.FFT_YIN, 22050, 1024, pdh);
-        dispatcher.addAudioProcessor(pitchProcessor);
-
-        Thread audioThread = new Thread(dispatcher, "Audio Thread");
-        audioThread.start();
-
-    }
-
     /**
-     * OnCreate: setup bottomNavigationView, sensorManager, lightSensor, and other sensors
+     * onCreate( ) life cycle method. Handles UI elements and checks for permissions.
      * @param savedInstanceState
      */
     @Override
@@ -261,6 +173,144 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * BottomNavigationView is the primary navigation element in our application.
+     * This method handles events based on which bottom navigation tab was selected.
+     */
+    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
+            = new BottomNavigationView.OnNavigationItemSelectedListener() {
+
+        @Override
+        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.sensorDraw:
+                    enableSensor(true);
+                    return true;
+                case R.id.touchDraw:
+                    enableSensor(false);
+                    return true;
+                case R.id.settings:
+                    begin = false;
+                    toSettings();
+                    return true;
+                case R.id.save:
+                    saveImage();
+                    return true;
+            }
+            return false;
+        }
+    };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Checks the permissions for AUDIO, READ/WRITE_EXTERNAL_STORAGE
+     * @param requestCode
+     * @param permissions
+     * @param grantResults
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            Log.i("SENSORP", String.valueOf(grantResults[0]));
+            Log.i("SENSORP", String.valueOf(grantResults[1]));
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                this.permissions_granted = true;
+                Log.i(LOGTAG, "Audio and External Storage Allowed");
+                createAudioThread();
+            }
+            else {
+                this.permissions_granted = false;
+                Log.i(LOGTAG, "Audio and External Storage Not Allowed");
+            }
+        }
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Method calling an intent to the Setting Activity
+     */
+    private void toSettings(){
+        settings = true;
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
+    }
+
+    /**
+     * Enables sensors in our application based on the option selected.
+     * The main sensor we toggle ON/OFF based on the navigation bar option is the GYROSCOPE
+     * @param gyro
+     */
+    private void enableSensor(boolean gyro){
+        if (gyro) {
+            gyroIsEnabled = true;
+            touchIsEnabled = false;
+        } else {
+            gyroIsEnabled = false;
+            touchIsEnabled = true;
+        }
+        this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
+        this.begin = true;
+        width = imageView.getWidth();
+        height = imageView.getHeight();
+        this.spiral = new Spiral(imageView.getWidth(), imageView.getHeight());
+    }
+
+    /**
+     * Saves the current bitmap to the phone/tablet's gallery
+     */
+    private void saveImage(){
+        // Save image to gallery
+        MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
+        // Push image to firebase if there is an internet connection
+    }
+
+    /**
+     * Create an AudioThread for tarosDSP such that we can detect PITCH and LOUDNESS.
+     */
+    public void createAudioThread(){
+        // Audio Stuff For now
+        // Audio Instance Variables
+        audioThread = true;
+        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
+
+        //Setup loudness detection.
+        this.threshold = SilenceDetector.DEFAULT_SILENCE_THRESHOLD;
+        silenceDetector = new SilenceDetector(threshold, false);
+        dispatcher.addAudioProcessor(silenceDetector);
+        dispatcher.addAudioProcessor(this);
+
+
+        this.audioInfo = findViewById(R.id.audioInfo);
+        PitchDetectionHandler pdh = new PitchDetectionHandler() {
+            @Override
+            public void handlePitch(PitchDetectionResult pitchDetectionResult, AudioEvent audioEvent) {
+                final float pitchInHz = pitchDetectionResult.getPitch();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        processPitch(pitchInHz);
+                    }
+                });
+            }
+        };
+
+        AudioProcessor pitchProcessor = new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.FFT_YIN, 22050, 1024, pdh);
+        dispatcher.addAudioProcessor(pitchProcessor);
+
+        Thread audioThread = new Thread(dispatcher, "Audio Thread");
+        audioThread.start();
+
+    }
+
+    /**
+     * Process incoming Hz sound data and convert it to a unique color.
+     * @param pitchInHz
+     */
     public void processPitch(float pitchInHz) {
 
         if(pitchInHz != -1) {
@@ -319,17 +369,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //int height = 300;
 
         if (width > 0) {
-            //int rectWidth = width / 6;
-            //int rectHeight = height / 6;
             int radius = this.sizeRadius;
 
             this.audioInfo.setText(String.format("%d %d %d", this.color[0], this.color[1], this.color[2]));
 
             paint.setARGB(this.opacity, this.color[0], this.color[1],this.color[2]);
-
-//
-//            int locX = mod(x , (width - rectWidth));
-//            int locY = mod(y , (height - rectHeight));
 
             int locX = mod(x, width);
             int locY = mod(y, height);
@@ -348,11 +392,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * A true mod function that computes the modulus similar to Python
+     * @param x
+     * @param y
+     * @return
+     */
     public int mod(int x, int y){
         if(y == 0) return 0;
         if(x > 0) return x % y;
         return y - (Math.abs(x) % y);
     }
+
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
@@ -365,7 +416,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 case Sensor.TYPE_GYROSCOPE:
                     // x y z in indices 0 1 2
-                    if(gyroIsEnabled) {
+                    if(this.spiralEnabled){
+                        this.x = spiral.next()[0];
+                        this.y = spiral.next()[1];
+                    }else if(gyroIsEnabled) {
                         float[] gyroscopeValues = sensorEvent.values;
 
                         // float values between 0 and 2pi
@@ -384,18 +438,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     break;
                 case Sensor.TYPE_LIGHT:
                     float currentValue = sensorEvent.values[0];
-                    this.opacity = 255 - mapRange(2, 0, 255, currentValue);
+                    this.opacity = 75 - mapRange(2, 0, 70, currentValue);
                     break;
             }
 
-
-            // Add switch statement if we had more sensors to take care of
-            // Scale this value between 0 and 255
-
-
-//        Log.i("Sensor", String.valueOf(currentValue));
-//        // Pass draw something a view
-//        drawSomething(this.imageView);
         }
     }
 
@@ -408,7 +454,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (hertz > 0) {
             // Map Hz from 25.4 and 1760 -----> 0 and 1530
-            int color = mapRange(1, 0, 1530, hertz);
+            int color = mapRange(1, 200, 1530, hertz);
             int[] returnColor = new int[3];
             int mod = mod(color, 255);
 
