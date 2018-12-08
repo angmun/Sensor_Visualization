@@ -1,7 +1,9 @@
 package com.example.mtvan15.ui_sye;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -15,6 +17,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.Image;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -23,9 +26,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.text.InputType;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -34,6 +39,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Random;
 
 import be.tarsos.dsp.AudioDispatcher;
@@ -105,6 +114,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private boolean permissions_granted;
     private final static String LOGTAG =
             MainActivity.class.getSimpleName();
+
+    // Current Image Name for Image Created
+    private String saveString;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -279,8 +291,54 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      */
     private void saveImage(){
         // Save image to gallery
-        MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
+        //MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
         // Push image to firebase if there is an internet connection
+
+
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Title");
+
+        final EditText input = new EditText(this);
+
+        // Specify the type of input expected. This is for the image name
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+
+        // Binding edit text to the Alert Dialog
+        builder.setView(input);
+
+        builder.setPositiveButton("Save Image", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                saveString = input.getText().toString();
+            }
+        });
+
+        builder.show();
+
+        String root =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath();
+
+        // TODO Check when app is made if the folder exists already, if so, we can't make the dir
+        File myDir = new File(root);
+
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+
+        String filename = this.saveString + timeStamp + ".jpg";
+
+        // Make the file with the desired name
+        File image = new File(myDir, filename);
+
+        // Should never reach here, but you know...
+        if (image.exists()) image.delete();
+        try {
+            FileOutputStream out = new FileOutputStream(image);
+            this.bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     /**
