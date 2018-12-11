@@ -28,6 +28,7 @@ import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
@@ -257,6 +258,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.action_bar_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if(id == R.id.communityButton){
+            // Do stuff
+            // Put intent here
+            // TODO disable sensors in a more robust way...
+            this.begin = false;
+            Intent intent = new Intent(this, Community.class);
+            startActivity(intent);
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Method calling an intent to the Setting Activity
      */
@@ -294,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
         // Push image to firebase if there is an internet connection
 
-
+        begin = false;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Title");
@@ -311,33 +335,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 saveString = input.getText().toString();
+                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, saveString, "");
+                begin = true;
             }
         });
 
         builder.show();
 
-        String root =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath();
 
-        // TODO Check when app is made if the folder exists already, if so, we can't make the dir
-        File myDir = new File(root);
 
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-
-        String filename = this.saveString + timeStamp + ".jpg";
-
-        // Make the file with the desired name
-        File image = new File(myDir, filename);
-
-        // Should never reach here, but you know...
-        if (image.exists()) image.delete();
-        try {
-            FileOutputStream out = new FileOutputStream(image);
-            this.bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        String root =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath();
+//
+//        // TODO Check when app is made if the folder exists already, if so, we can't make the dir
+//        File myDir = new File(root);
+//
+//        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+//
+//        String filename = this.saveString + timeStamp + ".jpg";
+//
+//        // Make the file with the desired name
+//        File image = new File(myDir, filename);
+//
+//        // Should never reach here, but you know...
+//        if (image.exists()) image.delete();
+//        try {
+//            FileOutputStream out = new FileOutputStream(image);
+//            this.bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+//            out.flush();
+//            out.close();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
 
     }
 

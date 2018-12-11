@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">UI_SYE</string>
+    <string name="app_name">Synesthesia</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
@@ -84,4 +84,6 @@
     <string name="pref_title_vibrate">Vibrate</string>
     <string name="defaultstring">IMAGETITLE</string>
     <string name="title_activity_gallery">GalleryActivity</string>
+    <string name="community">Community</string>
+    <string name="title_activity_community">Community</string>
 </resources>
