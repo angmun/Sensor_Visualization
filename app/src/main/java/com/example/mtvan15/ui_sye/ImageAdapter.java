@@ -38,7 +38,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.MyViewHolder
         ImageUpload anImage = imageUploadList.get(i);
         myViewHolder.image.setImageBitmap(anImage.getBitmap());
         myViewHolder.title.setText(anImage.getTitle());
-        myViewHolder.description.setText(anImage.getTitle());
+        myViewHolder.description.setText(anImage.getDescription());
     }
 
     @Override
