@@ -61,7 +61,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.MyViewHolder
 
     public ImageAdapter(List<ImageUpload> imageUploadList, Activity activity){
         this.activity = activity;
-        this.placeHolder = BitmapFactory.decodeResource(this.activity.getResources(), R.mipmap.place_holder);
         this.imageUploadList = imageUploadList;
     }
 }

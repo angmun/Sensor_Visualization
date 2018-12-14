@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -27,22 +28,29 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
 
@@ -78,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Paint paint;
     private Bitmap bitmap;
     private ImageView imageView;
-    private TextView audioInfo;
+
 
     // Sensor Manager and the Sensors
     private SensorManager sensorManager;
@@ -118,6 +126,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Current Image Name for Image Created
     private String saveString;
+    private String descriptionString;
+
+    private int imageNum = -1;
+    private String encodedImage;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -304,6 +316,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             touchIsEnabled = true;
         }
         this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
+        this.bitmap.eraseColor(Color.WHITE);
+
         this.begin = true;
         width = imageView.getWidth();
         height = imageView.getHeight();
@@ -321,26 +335,81 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         begin = false;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Title");
+        builder.setTitle("Save and Upload Image");
 
-        final EditText input = new EditText(this);
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        final EditText title = new EditText(this);
+        title.setHint("t i t l e");
+        final EditText description = new EditText(this);
+        description.setHint("d e s c r i p t i o n");
 
         // Specify the type of input expected. This is for the image name
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        title.setInputType(InputType.TYPE_CLASS_TEXT);
+        description.setInputType(InputType.TYPE_CLASS_TEXT);
 
-        // Binding edit text to the Alert Dialog
-        builder.setView(input);
+        layout.addView(title);
+        layout.addView(description);
+
+        builder.setView(layout);
 
         builder.setPositiveButton("Save Image", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                saveString = input.getText().toString();
-                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, saveString, "");
-                begin = true;
+                saveString = title.getText().toString();
+                descriptionString = description.getText().toString();
+                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, saveString, descriptionString);
+                //begin = true;
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos); //bm is the bitmap object
+                byte[] byteArray = baos.toByteArray();
+
+                encodedImage = Base64.encodeToString(byteArray, Base64.DEFAULT);
+
+
+
+                // Get the count of the last picture in the data base
+                // Write a message to the database
+                final FirebaseDatabase database = FirebaseDatabase.getInstance();
+                final DatabaseReference myRef = database.getReference("imageNum");
+
+                // Read from the database
+                myRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        // This method is called once with the initial value and again
+                        // whenever data at this location is updated.
+                        long value = dataSnapshot.getValue(Long.class);
+                        imageNum = (int) value;
+                        Log.d("imageNum", "Value is: " + imageNum);
+
+                        imageNum++;
+
+                        DatabaseReference newImageRef = database.getReference(String.valueOf(imageNum));
+
+                        ImageFB imagefb = new ImageFB(saveString, descriptionString, encodedImage);
+
+                        newImageRef.setValue(imagefb);
+
+                        myRef.setValue(imageNum);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+
+
             }
         });
 
+
+
         builder.show();
+
+
 
 
 
@@ -385,7 +454,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         dispatcher.addAudioProcessor(this);
 
 
-        this.audioInfo = findViewById(R.id.audioInfo);
+
         PitchDetectionHandler pdh = new PitchDetectionHandler() {
             @Override
             public void handlePitch(PitchDetectionResult pitchDetectionResult, AudioEvent audioEvent) {
@@ -471,7 +540,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (width > 0) {
             int radius = this.sizeRadius;
 
-            this.audioInfo.setText(String.format("%d %d %d", this.color[0], this.color[1], this.color[2]));
+            //this.audioInfo.setText(String.format("%d %d %d", this.color[0], this.color[1], this.color[2]));
 
             paint.setARGB(this.opacity, this.color[0], this.color[1],this.color[2]);
 
@@ -601,12 +670,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(silenceDetector.currentSPL() > threshold){
             this.sizeRadius = mapRange(3, 5, height, (float) silenceDetector.currentSPL());
 
-            this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    audioInfo.setText(audioInfo.getText() + String.valueOf(sizeRadius));
-                }
-            });
         }
     }
     @Override

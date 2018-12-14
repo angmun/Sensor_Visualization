@@ -12,6 +12,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -31,6 +32,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.StreamDownloadTask;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,8 +57,9 @@ public class Community extends AppCompatActivity {
 
         imageList = new ArrayList<ImageUpload>();
         recyclerView = findViewById(R.id.recyclerView);
+
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         adapter = new ImageAdapter(imageList, this);
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(adapter);
@@ -81,14 +84,18 @@ public class Community extends AppCompatActivity {
                 // whenever data at this location is updated.
                 long value = dataSnapshot.getValue(Long.class);
                 imageNum = (int) value;
-                Log.d("imageNum", "Value is: " + imageNum);
-
-                while(imageNum >= 1){
-                    DatabaseReference imageRef = database.getReference(String.valueOf(imageNum));
+                Log.d("imageNumCom", "Value is: " + imageNum);
 
 
-                    // Read from the database
-                    imageRef.addValueEventListener(new ValueEventListener() {
+                DatabaseReference imageRef = database.getReference(String.valueOf(imageNum));
+                //DatabaseReference rootRef = database.getReference().getRoot();
+
+
+                // Read from the database
+
+                for(int i = 0; i < 3; i ++){
+                    imageRef = database.getReference(String.valueOf(imageNum));
+                    imageRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
 
@@ -97,9 +104,17 @@ public class Community extends AppCompatActivity {
                                 String newData = imageSnapshot.getValue(String.class);
                                 data.add(newData);
                             }
-
-                            title = data.get(1);
                             description = data.get(0);
+                            title = data.get(2);
+                            String stringImage = data.get(1);
+                            byte[] decodedString = Base64.decode(stringImage, Base64.DEFAULT);
+                            image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+                            // Make our ImageUpload Object
+                            imageList.add(new ImageUpload(title, description, image));
+
+                            adapter.notifyDataSetChanged();
+
                             Log.d("imageTitle", title);
                             Log.d("imageTitle", description);
                         }
@@ -110,7 +125,42 @@ public class Community extends AppCompatActivity {
                         }
                     });
 
+                    imageNum--;
                 }
+//                imageRef.addListenerForSingleValueEvent(new ValueEventListener() {
+//                    @Override
+//                    public void onDataChange(DataSnapshot dataSnapshot) {
+//
+//                        ArrayList<String> data = new ArrayList<>();
+//                        for(DataSnapshot imageSnapshot : dataSnapshot.getChildren()){
+//                            String newData = imageSnapshot.getValue(String.class);
+//                            data.add(newData);
+//                        }
+//                        description = data.get(0);
+//                        title = data.get(2);
+//                        String stringImage = data.get(1);
+//                        byte[] decodedString = Base64.decode(stringImage, Base64.DEFAULT);
+//                        image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+//
+//                        // Make our ImageUpload Object
+//                        imageList.add(new ImageUpload(title, description, image));
+//
+//                        imageNum--;
+//
+//                        adapter.notifyDataSetChanged();
+//
+//                        Log.d("imageTitle", title);
+//                        Log.d("imageTitle", description);
+//                    }
+//
+//                    @Override
+//                    public void onCancelled(@NonNull DatabaseError databaseError) {
+//
+//                    }
+//                });
+
+
+
 
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -122,59 +172,8 @@ public class Community extends AppCompatActivity {
 
             }
         });
-
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        FirebaseStorage storageRef = FirebaseStorage.getInstance();
-
-        StorageReference storageReference = storageRef.getReference();
-
-        StorageReference pathReference = storageReference.child("images/placeHolder.jpg");
-
-        final long ONE_MEGABYTE = 1024 * 1024;
-
-        pathReference.getBytes(ONE_MEGABYTE).addOnSuccessListener(new OnSuccessListener<byte[]>() {
-            @Override
-            public void onSuccess(byte[] bytes) {
-                image = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            }
-        });
-
-        //image = getBitmapFromURL("https://firebasestorage.googleapis.com/v0/b/cs450-synesthesia.appspot.com/o/2.jpg?alt=media&token=82a2e7f3-6d3d-4aeb-9d00-de47a56914a1");
-
-//        imageStorageRef.getBytes(1024*1024).addOnSuccessListener(new OnSuccessListener<byte[]>() {
-//            @Override
-//            public void onSuccess(byte[] bytes) {
-//                Log.d("byteArray", String.valueOf(bytes.length));
-//                image = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-//            }
-//
-//        });
-
-        Log.d("imageSize", String.valueOf(image.getByteCount()));
-        // Make our ImageUpload Object
-        imageList.add(new ImageUpload(title, description, image));
-
-        imageNum--;
-
-        adapter.notifyDataSetChanged();
-
-    }
-
-    public Bitmap getBitmapFromURL(String src) {
-        try {
-            java.net.URL url = new java.net.URL(src);
-            HttpURLConnection connection = (HttpURLConnection) url
-                    .openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            Bitmap myBitmap = BitmapFactory.decodeStream(input);
-            return myBitmap;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        Log.d("ImageList", String.valueOf(imageList.size()));
     }
 
 }
