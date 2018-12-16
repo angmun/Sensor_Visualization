@@ -5,12 +5,15 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -19,6 +22,7 @@ import android.hardware.SensorManager;
 import android.media.Image;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -131,6 +135,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int imageNum = -1;
     private String encodedImage;
 
+    SharedPreferences sharedPreferences;
+
+    String username;
+    Boolean light_switch;
+    Boolean volume_switch;
+    Boolean radialMotion;
+    Boolean spiralMotion;
+    String strokeType;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -151,6 +164,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         Log.i("MagResume", String.valueOf(this.height));
 
+        // Load User Preferences
+        // username
+        // light_switch
+        // volume_Switch
+        // strokeType
+        // spiralMotion
+        // radialMotion
+        username = sharedPreferences.getString("username", "");
+        light_switch = sharedPreferences.getBoolean("light_switch", true);
+        volume_switch = sharedPreferences.getBoolean("volume_switch", true);
+        strokeType = sharedPreferences.getString("stroke_type", " ");
+        spiralMotion = sharedPreferences.getBoolean("spiralMotion", false);
+        radialMotion = sharedPreferences.getBoolean("radialMotion", false);
+
+
         if (settings) {
             begin = true;
             settings = false;
@@ -166,6 +194,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Register a listener for the gyroscope sensor
         sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
         // Now we are ready to start
+
+        this.spiral = new Spiral(imageView.getWidth(), imageView.getHeight());
+
+
     }
 
     /**
@@ -176,6 +208,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         // check all permissions
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
@@ -321,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         this.begin = true;
         width = imageView.getWidth();
         height = imageView.getHeight();
-        this.spiral = new Spiral(imageView.getWidth(), imageView.getHeight());
+
     }
 
     /**
@@ -555,7 +589,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             //rect.set(locX + rectWidth, locY + rectHeight, locX, locY);
             //Draw the rectangle
             //canvas.drawRect(rect, paint);
-            canvas.drawCircle(locX, locY, radius, paint);
+            int stroke = Integer.parseInt(strokeType);
+            switch(stroke){
+                case 0:
+                    canvas.drawCircle(locX, locY, radius, paint);
+                    break;
+                case 1:
+                    canvas.drawRect(locX + sizeRadius, locY + sizeRadius, locX, locY, paint);
+                    break;
+                case 2:
+                    paint.setStyle(Paint.Style.FILL);
+                    Point point1_draw = new Point();
+                    Point point2_draw = new Point();
+                    Point point3_draw = new Point();
+
+                    point1_draw.set(locX, locY);
+                    point2_draw.set(locX + sizeRadius / 2, locY - sizeRadius/2);
+                    point3_draw.set(locX - sizeRadius / 2, locY - sizeRadius/2);
+
+                    Path path = new Path();
+                    path.setFillType(Path.FillType.EVEN_ODD);
+                    path.moveTo(point1_draw.x,point1_draw.y);
+                    path.lineTo(point2_draw.x,point2_draw.y);
+                    path.lineTo(point3_draw.x,point3_draw.y);
+                    path.lineTo(point1_draw.x,point1_draw.y);
+                    path.close();
+
+                    canvas.drawPath(path, paint);
+                    break;
+            }
+            //canvas.drawCircle(locX, locY, radius, paint);
             //Invalidate
             imageView.invalidate();
         }
@@ -585,7 +648,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 case Sensor.TYPE_GYROSCOPE:
                     // x y z in indices 0 1 2
-                    if(this.spiralEnabled){
+                    if (this.touchIsEnabled){
+                        float[] coordinates = this.touchListener.getCoordinates();
+                        this.x = (int)coordinates[0];
+                        this.y = (int)coordinates[1];
+                    }
+                    else if(this.spiralMotion){
                         this.x = spiral.next()[0];
                         this.y = spiral.next()[1];
                     }else if(gyroIsEnabled) {
@@ -596,18 +664,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                         this.x = mapRange(0, 0, imageView.getWidth(), gyroscopeValues[1]);
                         this.y = mapRange(0, 0, imageView.getHeight(), gyroscopeValues[0]);
-                    }else if (this.touchIsEnabled){
-                        float[] coordinates = this.touchListener.getCoordinates();
-                        this.x = (int)coordinates[0];
-                        this.y = (int)coordinates[1];
                     }
                     drawSomething(this.x, this.y, this.bitmap);
 
 
                     break;
                 case Sensor.TYPE_LIGHT:
-                    float currentValue = sensorEvent.values[0];
-                    this.opacity = 75 - mapRange(2, 0, 70, currentValue);
+                    if(light_switch) {
+                        float currentValue = sensorEvent.values[0];
+                        this.opacity = 75 - mapRange(2, 0, 70, currentValue);
+                    }else{
+                        this.opacity = 150;
+                    }
                     break;
             }
 
@@ -667,9 +735,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void handleSound(){
-        if(silenceDetector.currentSPL() > threshold){
+
+        if(silenceDetector.currentSPL() > threshold && volume_switch){
             this.sizeRadius = mapRange(3, 5, height, (float) silenceDetector.currentSPL());
 
+        }else{
+            this.sizeRadius = 10;
         }
     }
     @Override

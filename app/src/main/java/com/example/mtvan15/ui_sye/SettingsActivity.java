@@ -179,8 +179,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("example_text"));
-            bindPreferenceSummaryToValue(findPreference("example_list"));
+            bindPreferenceSummaryToValue(findPreference("username"));
+            bindPreferenceSummaryToValue(findPreference("stroke_type"));
         }
 
         @Override
@@ -210,7 +210,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
+
         }
 
         @Override
@@ -222,6 +222,11 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             }
             return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
     }
 
     /**
@@ -240,7 +245,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("sync_frequency"));
+
         }
 
         @Override
