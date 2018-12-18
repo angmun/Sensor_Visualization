@@ -84,6 +84,7 @@ public class Community extends AppCompatActivity {
                 // whenever data at this location is updated.
                 long value = dataSnapshot.getValue(Long.class);
                 imageNum = (int) value;
+                int iterations = imageNum;
                 Log.d("imageNumCom", "Value is: " + imageNum);
 
 
@@ -93,7 +94,7 @@ public class Community extends AppCompatActivity {
 
                 // Read from the database
 
-                for(int i = 0; i < 3; i ++){
+                for(int i = 0; i < iterations; i ++){
                     imageRef = database.getReference(String.valueOf(imageNum));
                     imageRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override

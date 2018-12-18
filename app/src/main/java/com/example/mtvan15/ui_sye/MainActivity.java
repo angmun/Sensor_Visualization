@@ -23,6 +23,7 @@ import android.media.Image;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.preference.SwitchPreference;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -36,10 +37,13 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.google.firebase.database.DataSnapshot;
@@ -104,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Keep a reference to a Spiral Class
     private Spiral spiral;
+    private Radial radial;
 
     // Important drawing elements for the canvas (parameters)
     private int color[] = {0, 0, 0};
@@ -135,7 +140,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int imageNum = -1;
     private String encodedImage;
 
+    private String baseImage;
+
     SharedPreferences sharedPreferences;
+    SwitchPreference radialSwitchPref;
+    SwitchPreference spiralSwitchPref;
 
     String username;
     Boolean light_switch;
@@ -174,10 +183,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         username = sharedPreferences.getString("username", "");
         light_switch = sharedPreferences.getBoolean("light_switch", true);
         volume_switch = sharedPreferences.getBoolean("volume_switch", true);
-        strokeType = sharedPreferences.getString("stroke_type", " ");
+        strokeType = sharedPreferences.getString("stroke_type", "0");
         spiralMotion = sharedPreferences.getBoolean("spiralMotion", false);
         radialMotion = sharedPreferences.getBoolean("radialMotion", false);
+        String encodedBitmap = sharedPreferences.getString("background", "");
 
+
+        if(!encodedBitmap.equals("")){
+            byte[] decodedString = Base64.decode(encodedBitmap, Base64.DEFAULT);
+            this.bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length).copy(Bitmap.Config.ARGB_8888, true);
+            this.imageView.setImageBitmap(this.bitmap);
+            sharedPreferences.edit().putString("background","").apply();
+
+        }
 
         if (settings) {
             begin = true;
@@ -195,7 +213,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
         // Now we are ready to start
 
-        this.spiral = new Spiral(imageView.getWidth(), imageView.getHeight());
+
 
 
     }
@@ -229,8 +247,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         DatabaseReference myRef = database.getReference("message");
 
         imageView = findViewById(R.id.imageView);
-        this.touchListener = new TouchListener();
-        imageView.setOnTouchListener(this.touchListener);
+        //this.touchListener = new TouchListener();
+        imageView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(touchIsEnabled){
+                    x = (int)event.getX();
+                    y = (int)event.getY();
+                    drawSomething(x, y, bitmap);
+                    return true;
+                }
+                return false;
+            }
+        });
 
         this.x = imageView.getWidth() /2;
         this.y = imageView.getHeight() / 2;
@@ -270,6 +299,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     return true;
                 case R.id.save:
                     saveImage();
+                    return true;
+                case R.id.clearButton:
+                    clearCanvas();
                     return true;
             }
             return false;
@@ -319,6 +351,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // Put intent here
             // TODO disable sensors in a more robust way...
             this.begin = false;
+            this.settings = true;
             Intent intent = new Intent(this, Community.class);
             startActivity(intent);
         }
@@ -336,6 +369,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         startActivity(intent);
     }
 
+    private void clearCanvas(){
+        begin = false;
+        // Values to keep track of the largest magnitudes seen so far
+        magnitude = 3.14f;
+        colorMagnitude = 1f;
+        lightMagnitude = 1f;
+        sizeMagnitude = 1f;
+        this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
+        this.bitmap.eraseColor(Color.WHITE);
+        this.imageView.setImageBitmap(bitmap);
+        enableSensor(false);
+    }
+
     /**
      * Enables sensors in our application based on the option selected.
      * The main sensor we toggle ON/OFF based on the navigation bar option is the GYROSCOPE
@@ -345,12 +391,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (gyro) {
             gyroIsEnabled = true;
             touchIsEnabled = false;
+            spiralMotion = sharedPreferences.getBoolean("spiralMotion", false);
+            radialMotion = sharedPreferences.getBoolean("radialMotion", false);
+
         } else {
             gyroIsEnabled = false;
             touchIsEnabled = true;
+            spiralMotion = false;
+            radialMotion = false;
         }
-        this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
-        this.bitmap.eraseColor(Color.WHITE);
+
+        if(this.bitmap == null) {
+            this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
+            this.bitmap.eraseColor(Color.WHITE);
+        }
+
+        this.spiral = new Spiral(imageView.getWidth(), imageView.getHeight());
+        this.radial = new Radial(imageView.getWidth(), imageView.getHeight());
 
         this.begin = true;
         width = imageView.getWidth();
@@ -396,7 +453,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 //begin = true;
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos); //bm is the bitmap object
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos); //bm is the bitmap object
                 byte[] byteArray = baos.toByteArray();
 
                 encodedImage = Base64.encodeToString(byteArray, Base64.DEFAULT);
@@ -595,7 +652,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     canvas.drawCircle(locX, locY, radius, paint);
                     break;
                 case 1:
-                    canvas.drawRect(locX + sizeRadius, locY + sizeRadius, locX, locY, paint);
+                    canvas.drawRect(locX - sizeRadius/2, locY - sizeRadius/2, locX + sizeRadius/2, locY + sizeRadius/2, paint);
                     break;
                 case 2:
                     paint.setStyle(Paint.Style.FILL);
@@ -648,14 +705,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 case Sensor.TYPE_GYROSCOPE:
                     // x y z in indices 0 1 2
-                    if (this.touchIsEnabled){
-                        float[] coordinates = this.touchListener.getCoordinates();
-                        this.x = (int)coordinates[0];
-                        this.y = (int)coordinates[1];
+                    if(this.radialMotion && radial != null){
+                        int[] coordinates = radial.next();
+                        for(int i = 0; i < 8; i += 2){
+                            drawSomething(coordinates[i], coordinates[i+1], this.bitmap);
+                        }
                     }
-                    else if(this.spiralMotion){
-                        this.x = spiral.next()[0];
-                        this.y = spiral.next()[1];
+                    else if(this.spiralMotion && spiral != null){
+                        int[] coordinates = spiral.next();
+                        this.x = coordinates[0];
+                        this.y = coordinates[1];
+                        drawSomething(this.x, this.y, this.bitmap);
                     }else if(gyroIsEnabled) {
                         float[] gyroscopeValues = sensorEvent.values;
 
@@ -664,9 +724,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                         this.x = mapRange(0, 0, imageView.getWidth(), gyroscopeValues[1]);
                         this.y = mapRange(0, 0, imageView.getHeight(), gyroscopeValues[0]);
+                        drawSomething(this.x, this.y, this.bitmap);
+                    }else if(!touchIsEnabled) {
+                        drawSomething(this.x, this.y, this.bitmap);
                     }
-                    drawSomething(this.x, this.y, this.bitmap);
-
 
                     break;
                 case Sensor.TYPE_LIGHT:
