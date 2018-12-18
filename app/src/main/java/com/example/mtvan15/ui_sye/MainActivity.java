@@ -153,15 +153,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     Boolean spiralMotion;
     String strokeType;
 
+    Thread audioThreadRef;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * onStart( ) life cycle method
-     */
-    @Override
-    protected void onStart() {
-        super.onStart();
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     /**
@@ -171,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onResume() {
         super.onResume();
 
-        Log.i("MagResume", String.valueOf(this.height));
+
 
         // Load User Preferences
         // username
@@ -186,13 +191,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         strokeType = sharedPreferences.getString("stroke_type", "0");
         spiralMotion = sharedPreferences.getBoolean("spiralMotion", false);
         radialMotion = sharedPreferences.getBoolean("radialMotion", false);
+
         String encodedBitmap = sharedPreferences.getString("background", "");
 
 
         if(!encodedBitmap.equals("")){
+            this.width = sharedPreferences.getInt("width", 0);
+            this.height = sharedPreferences.getInt("height", 0);
             byte[] decodedString = Base64.decode(encodedBitmap, Base64.DEFAULT);
             this.bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length).copy(Bitmap.Config.ARGB_8888, true);
-            this.imageView.setImageBitmap(this.bitmap);
+            this.bitmap = Bitmap.createScaledBitmap(this.bitmap, this.width , this.height, false);
+            this.imageView.setImageBitmap(bitmap);
             sharedPreferences.edit().putString("background","").apply();
 
         }
@@ -202,19 +211,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             settings = false;
         }
 
+
+
         if (!audioThread && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
             this.permissions_granted = true;
             createAudioThread();
         }
+
+
         // Register a listener for the proximity sensory
         sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
         // Register a listener for the gyroscope sensor
         sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
         // Now we are ready to start
-
-
-
 
     }
 
@@ -237,7 +247,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     new String[] { Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     PERMISSION_REQUEST_CODE
             );
+
         }
+
+
 
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
@@ -261,8 +274,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
-        this.x = imageView.getWidth() /2;
-        this.y = imageView.getHeight() / 2;
+        this.x = width /2;
+        this.y = height / 2;
 
         paint = new Paint();
 
@@ -320,16 +333,53 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            Log.i("SENSORP", String.valueOf(grantResults[0]));
-            Log.i("SENSORP", String.valueOf(grantResults[1]));
+
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                 this.permissions_granted = true;
-                Log.i(LOGTAG, "Audio and External Storage Allowed");
-                createAudioThread();
+
+
             }
             else {
                 this.permissions_granted = false;
-                Log.i(LOGTAG, "Audio and External Storage Not Allowed");
+                if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle("Please Grant Permissions for External Storage");
+
+                    LinearLayout layout = new LinearLayout(this);
+                    layout.setOrientation(LinearLayout.VERTICAL);
+                    final TextView text = new TextView(this);
+                    text.setPadding(30, 30, 30, 30);
+                    text.setText("To save your creations, we require read and write access to your external storage. Without it, this app will not run. The app will proceed to close. Please consider granting permissions next time.");
+                    layout.addView(text);
+                    builder.setView(layout);
+                    builder.setPositiveButton("K.", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            android.os.Process.killProcess(android.os.Process.myPid());
+                        }
+                    });
+                    builder.show();
+                }else if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)){
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle("Please Grant Permissions for Audio");
+
+                    LinearLayout layout = new LinearLayout(this);
+                    layout.setOrientation(LinearLayout.VERTICAL);
+                    final TextView text = new TextView(this);
+                    text.setPadding(30, 30, 30, 30);
+                    text.setText("To engage with your art, we require audio access. Without it, this app will not run. The app will proceed to close. Please consider granting permissions next time.");
+                    layout.addView(text);
+                    builder.setView(layout);
+                    builder.setPositiveButton("K.", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            android.os.Process.killProcess(android.os.Process.myPid());
+                        }
+                    });
+                    builder.show();
+                }
+                //this.finish();
+
             }
         }
     }
@@ -352,6 +402,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // TODO disable sensors in a more robust way...
             this.begin = false;
             this.settings = true;
+            sharedPreferences.edit().putInt("width", this.width).apply();
+            sharedPreferences.edit().putInt("height", this.height).apply();
             Intent intent = new Intent(this, Community.class);
             startActivity(intent);
         }
@@ -406,12 +458,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             this.bitmap.eraseColor(Color.WHITE);
         }
 
-        this.spiral = new Spiral(imageView.getWidth(), imageView.getHeight());
-        this.radial = new Radial(imageView.getWidth(), imageView.getHeight());
-
-        this.begin = true;
         width = imageView.getWidth();
         height = imageView.getHeight();
+
+        this.spiral = new Spiral(width, height);
+        this.radial = new Radial(width, height);
+
+        this.begin = true;
 
     }
 
@@ -426,7 +479,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         begin = false;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Save and Upload Image");
+        builder.setTitle("Save/Upload Image");
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -444,11 +497,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         builder.setView(layout);
 
-        builder.setPositiveButton("Save Image", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 saveString = title.getText().toString();
-                descriptionString = description.getText().toString();
+                descriptionString = description.getText().toString() + " - " + username;
+                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, saveString, descriptionString);
+
+            }
+        });
+
+        builder.setNegativeButton("Save and Upload", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                saveString = title.getText().toString();
+                descriptionString = description.getText().toString() + " - " + username;
                 MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, saveString, descriptionString);
                 //begin = true;
 
@@ -473,7 +536,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         // whenever data at this location is updated.
                         long value = dataSnapshot.getValue(Long.class);
                         imageNum = (int) value;
-                        Log.d("imageNum", "Value is: " + imageNum);
+
 
                         imageNum++;
 
@@ -491,8 +554,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     }
                 });
-
-
             }
         });
 
@@ -562,8 +623,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         AudioProcessor pitchProcessor = new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.FFT_YIN, 22050, 1024, pdh);
         dispatcher.addAudioProcessor(pitchProcessor);
 
-        Thread audioThread = new Thread(dispatcher, "Audio Thread");
-        audioThread.start();
+        audioThreadRef = new Thread(dispatcher, "Audio Thread");
+        audioThreadRef.start();
 
     }
 
@@ -601,7 +662,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if (Math.abs(val) > colorMagnitude) {
                     colorMagnitude = Math.abs(val);
                 }
-
                 return min + (((int)(val * 1000) + (int)(colorMagnitude*1000))*(max - min) / (int)(colorMagnitude*2000));
             case 2:
                 if (Math.abs(val) > lightMagnitude) {
@@ -631,7 +691,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (width > 0) {
             int radius = this.sizeRadius;
 
-            //this.audioInfo.setText(String.format("%d %d %d", this.color[0], this.color[1], this.color[2]));
 
             paint.setARGB(this.opacity, this.color[0], this.color[1],this.color[2]);
 
@@ -719,8 +778,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }else if(gyroIsEnabled) {
                         float[] gyroscopeValues = sensorEvent.values;
 
-                        // float values between 0 and 2pi
-                        Log.i("Main_Activity", String.valueOf(gyroscopeValues[0]));
+
 
                         this.x = mapRange(0, 0, imageView.getWidth(), gyroscopeValues[1]);
                         this.y = mapRange(0, 0, imageView.getHeight(), gyroscopeValues[0]);
@@ -751,6 +809,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public int[] soundToColor(float hertz){
 
         if (hertz > 0) {
+
+
             // Map Hz from 25.4 and 1760 -----> 0 and 1530
             int color = mapRange(1, 200, 1530, hertz);
             int[] returnColor = new int[3];
@@ -786,7 +846,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         }
 
-        return new int[]{0, 0, 0};
+        return new int[]{color[0], color[1], color[2]};
     }
 
     @Override
@@ -798,7 +858,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void handleSound(){
 
         if(silenceDetector.currentSPL() > threshold && volume_switch){
-            this.sizeRadius = mapRange(3, 5, height, (float) silenceDetector.currentSPL());
+            this.sizeRadius = mapRange(3, 10, height, (float) silenceDetector.currentSPL());
 
         }else{
             this.sizeRadius = 10;
