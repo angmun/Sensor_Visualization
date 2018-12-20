@@ -84,7 +84,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.MyViewHolder
 
     /**
      * Return the number of ImageUploadObjects to display in the RecyclerView UI element.
-     * @return
+     * @return int
      */
     @Override
     public int getItemCount() {

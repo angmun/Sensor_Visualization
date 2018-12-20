@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 /**
  * A {@link android.preference.PreferenceActivity} which implements and proxies the necessary calls
  * to be used with AppCompat.
+ * This abstract class is extended by the SettingsActivity class, which serves as our Preference activity for the application. Various methods are provided through this class that are utilized in our implementation of the Preference activity.
  */
 public abstract class AppCompatPreferenceActivity extends PreferenceActivity {
 

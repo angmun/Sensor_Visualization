@@ -40,12 +40,23 @@ import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
+/***
+ * The Community activity displays images saved by the community through the application and provides the user with the option to download an image copy to modify as they desire, known as 'remixing' in or application.
+ */
 public class Community extends AppCompatActivity {
-
+    // A list of images from Firebase to display in a recycler view on the Community activity.
     List<ImageUpload> imageList;
+
+    // A view that allows us to display images as we download them from the Firebase database where they are saved.
     RecyclerView recyclerView;
+
+    // An image adapter required to manage view holder objects for images to be displayed in the recycler view.
     ImageAdapter adapter;
+
+    // An integer value that allows us to track the number of images left to prepare for display in the recycler view.
     int imageNum = -1;
+
+    // The required data for a single image downloaded from the Firebase database for its display in the recycler view.
     String title;
     String description;
     Bitmap image;
@@ -55,6 +66,7 @@ public class Community extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_community);
 
+        // Initialize the variables required to set up the recycler view for image display from the Firebase database.
         imageList = new ArrayList<ImageUpload>();
         recyclerView = findViewById(R.id.recyclerView);
 
@@ -64,12 +76,16 @@ public class Community extends AppCompatActivity {
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(adapter);
 
+        // Set up the images accordingly for display.
         prepareImages();
     }
 
+    /***
+     * Sets up saved images for display on the recycler view. An image, its title and description are 
+     */
     private void prepareImages(){
         // We need firebase calls
-        //https://www.androidhive.info/2016/01/android-working-with-recycler-view/
+        //Citation: https://www.androidhive.info/2016/01/android-working-with-recycler-view/
 
         // Get the count of the last picture in the data base
         // Write a message to the database
@@ -89,7 +105,6 @@ public class Community extends AppCompatActivity {
 
 
                 DatabaseReference imageRef = database.getReference(String.valueOf(imageNum));
-                //DatabaseReference rootRef = database.getReference().getRoot();
 
 
                 // Read from the database

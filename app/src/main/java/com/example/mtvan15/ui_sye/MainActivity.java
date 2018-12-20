@@ -73,15 +73,15 @@ import be.tarsos.dsp.pitch.PitchProcessor;
 
 
 /**
- * MainActivity maintains control/focus of sensor and audio input. The MainActivity also handles
+ * The MainActivity maintains control/focus of sensor and audio input. It also handles
  * distinct user permissions when the application is first started to ensure proper application
- * behavior. Additionally, MainActivity is responsible for drawing visuals that the user sees
+ * behavior. Additionally, it is responsible for drawing visuals that the user sees
  * once interacting with the application. MainActivity contains a canvas that dynamically draws
- * visuals based on environmental cues, noise, and volume. The user may control different types of
+ * visuals based on light, gyroscope and audio input data mappings to various drawing elements. The user may control different types of
  * interactions using a BottomNavigationView containing various options. Users have the option
  * of navigating to settings, enabling touch drawing, enabling sensor drawing, clearing the canvas,
- * as well as saving desired images. MainActivity also contains a globe button to enable community
- * sharing and interactions.
+ * as well as saving desired images. MainActivity also contains a button to navigate to the Community activity
+ * to view creations shared by the community and select images from it to copy and modify as desired.
  */
 public class MainActivity extends AppCompatActivity implements SensorEventListener, AudioProcessor {
 
@@ -175,16 +175,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+    /***
+     * onBackButton() - Android life cycle method to handle back button presses.
+     * This method is used to manage audio thread interruption when the back button is pressed and onDestroy() is called to prevent its continuation even after a new thread is created in onResume().
+     * */
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         android.os.Process.killProcess(android.os.Process.myPid());
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
     }
 
     /**
@@ -271,16 +269,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * quereies to the FireBase noSQL database by keeping a global reference to the database object.
      * The BottomNavigationView is attached to a listener which enables active detection of navigation
      * events and settings
-     * @param savedInstanceState
+     * @param savedInstanceState bundle containing any saved values to use for activity UI state restoration from application or activity destruction.
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Initialize a shared preference instance used to retrieve values saved in shared preferences for use in any application activity as required.
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
-        // check all permissions
+        // Check for both external storage access and audio recording permissions to prompt the user if they have not been granted.
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(
@@ -302,7 +301,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mStorageRef = FirebaseStorage.getInstance().getReference();
         DatabaseReference myRef = database.getReference("message");
 
-
+        // Initialize the image view that houses the canvas on which the user draws their images.
         imageView = findViewById(R.id.imageView);
 
         // Set an onTouchListener for the imageView which will allow for touch input and drawing
@@ -342,6 +341,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // retrieval.
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
+        // Initialize sensors to be used in the application for dynamic image drawing on a canvas.
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
@@ -784,8 +784,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * mapRange( ) - MapRange function that takes a given value VAL and scales it between a minimum destination
      * value and a maximum destination value. We separated the various cases for debugging purposes, since it
      * highlights what return values are being used/associated with a particular variable.
-     * @param min destination value
-     * @param max destination value
+     * @param min destination lower-bound value
+     * @param max destination upper-bound value
      * @param val value to scale that is within range magnitude
      * @return scaled number between min and max
      */
@@ -826,8 +826,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * method, and applies it to the paint object. There are 3 different strokes for the 3 different
      * shapes, and the stroke is retrieved from SharedUserPreferences during onResume( ) when all
      * relevant preferences are loaded into our application.
-     * @param x location to draw a circle, square, or triangle
-     * @param y location to draw a circle, square, or triangle
+     * @param x a location coordinate to draw a circle, square, or triangle
+     * @param y a location coordinate to draw a circle, square, or triangle
      * @param bitmap represents the current bitmap to draw on. It is passed by reference.
      */
     public void drawSomething(int x, int y, Bitmap bitmap) {
@@ -892,9 +892,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     /**
      * A true mod function that computes the modulus similar to Python. X % Y where X and Y refer
      * to the parameters of the function.
-     * @param x mod(x, y) = x % y
-     * @param y mod(x, y) = x % y
-     * @return the modulus as it is computed in Python.
+     * @param x value to be modded with a given modulus
+     * @param y modulus
+     * @return x mod y as it is computed in Python.
      */
     public int mod(int x, int y){
         if(y == 0) return 0;
@@ -907,7 +907,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * Sensors include GYROSCOPE & LIGHT. This method also contains control flow for automated
      * drawing mechanisms represented by our Spiral and Radial classes. This gives the user control
      * and flexibility over what drawing mode they would like to use to create their drawing.
-     * @param sensorEvent is the sensor that was detected by the onSensorChange( ) listener.
+     * @param sensorEvent the sensor that was detected by the onSensorChange( ) listener.
      */
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
@@ -919,18 +919,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             switch (sensorType) {
 
                 case Sensor.TYPE_GYROSCOPE:
+                    // Draw a radial pattern if the Radial mode is selected by the user.
                     if(this.radialMotion && radial != null){
                         int[] coordinates = radial.next();
                         for(int i = 0; i < 8; i += 2){
                             drawSomething(coordinates[i], coordinates[i+1], this.bitmap);
                         }
                     }
+                    // Draw a spiral pattern if the Spiral mode is selected by the user.
                     else if(this.spiralMotion && spiral != null){
                         int[] coordinates = spiral.next();
                         this.x = coordinates[0];
                         this.y = coordinates[1];
                         drawSomething(this.x, this.y, this.bitmap);
-                    }else if(gyroIsEnabled) {
+                    }
+                    // Use gyroscopic input to move the stroke around the canvas.
+                    else if(gyroIsEnabled) {
                         float[] gyroscopeValues = sensorEvent.values;
                         this.x = mapRange(0, 0, imageView.getWidth(), gyroscopeValues[1]);
                         this.y = mapRange(0, 0, imageView.getHeight(), gyroscopeValues[0]);
@@ -940,6 +944,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                     break;
                 case Sensor.TYPE_LIGHT:
+                    // Modify the opacity of the stroke according to light sensor input.
                     if(light_switch) {
                         float currentValue = sensorEvent.values[0];
                         this.opacity = 75 - mapRange(2, 0, 70, currentValue);
@@ -968,7 +973,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * the classic representation of a color wheel. Colors go from red to orange, yellow, green, to blue.
      * This function directly uses our mapRange( ) function, showing its versatility throughout our
      * application.
-     * @param hertz representing the detected pitch by the PitchDetectionHandler object and thread. Hz
+     * @param hertz represents the detected pitch by the PitchDetectionHandler object and thread. Hz
      *              is -1 if no pitch is detected.
      * @return a color array of [r, g, b] after the computation
      */

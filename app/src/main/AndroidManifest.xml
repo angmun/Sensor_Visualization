@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.mtvan15.ui_sye">
-
+    <!--The application requires permissions to record audio for pitch and volume that modify color and stroke width when creating an image-->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!--The application requires permissions to read from and write to the user's device storage to save created images in their gallery-->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--The application requires permissions to access the internet to upload and download images from Google Firebase-->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -21,7 +23,6 @@
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

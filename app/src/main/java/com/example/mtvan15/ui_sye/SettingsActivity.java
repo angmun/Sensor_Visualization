@@ -49,7 +49,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
             String stringValue = value.toString();
-
+            // Handles changes in stroke type, which uses a List preference implementation to provide the user with the three options for stroke type (circle, square, triangle).
             if (preference instanceof ListPreference) {
                 // For list preferences, look up the correct display value in
                 // the preference's 'entries' list.
@@ -147,8 +147,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
     }
 
     /**
-     * This fragment shows general preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
+     * The General Preference fragment class, which manages and holds our sensor preferences.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class GeneralPreferenceFragment extends PreferenceFragment {
@@ -158,7 +157,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
             addPreferencesFromResource(R.xml.pref_general);
             setHasOptionsMenu(true);
 
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
+            // Bind the summaries of EditText/List preferences
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
@@ -178,8 +177,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
     }
 
     /**
-     * This fragment shows notification preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
+     * The Notification Preference fragment class, which manages and holds our special methods preferences.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class NotificationPreferenceFragment extends PreferenceFragment {
@@ -188,11 +186,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_notification);
             setHasOptionsMenu(true);
-
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
 
         }
 
@@ -213,8 +206,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
     }
 
     /**
-     * This fragment shows data and sync preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
+     * The Data Synce Preference fragment class, in which we have information regarding our application i.e. the About section.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class DataSyncPreferenceFragment extends PreferenceFragment {
@@ -223,12 +215,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_data_sync);
             setHasOptionsMenu(true);
-
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
-
         }
 
         @Override

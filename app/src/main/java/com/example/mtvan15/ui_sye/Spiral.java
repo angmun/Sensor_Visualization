@@ -47,16 +47,6 @@ public class Spiral {
         radius += radiusStep;
         currAngle += angleStep;
 
-
-//        // Check to see if the maximum angle has been exceeded
-//        if(angleStep > 0 && currAngle + angleStep >= 2 * Math.PI){
-//            angleStep = -angleStep;
-//        }else if(radiusStep < 0 && currAngle + angleStep <= 0){
-//            angleStep = -angleStep;
-//        }
-
-
-
         // Now get the coordinates as expressed by Sin() and Cos()
         return new int[]{(int) ((dimX/2) + radius * Math.cos(currAngle)), (int) ((dimY/2) + radius * Math.sin(currAngle))};
     }

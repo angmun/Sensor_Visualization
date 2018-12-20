@@ -60,13 +60,6 @@ public class Radial {
         currAngle4 += angleStep;
 
 
-//        // Check to see if the maximum angle has been exceeded
-//        if(angleStep > 0 && currAngle + angleStep >= 2 * Math.PI){
-//            angleStep = -angleStep;
-//        }else if(radiusStep < 0 && currAngle + angleStep <= 0){
-//            angleStep = -angleStep;
-//        }
-
         Point p1 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle1)), (int) ((dimY/2) + radius * Math.sin(currAngle1)));
         Point p2 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle2)), (int) ((dimY/2) + radius * Math.sin(currAngle2)));
         Point p3 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle3)), (int) ((dimY/2) + radius * Math.sin(currAngle3)));
