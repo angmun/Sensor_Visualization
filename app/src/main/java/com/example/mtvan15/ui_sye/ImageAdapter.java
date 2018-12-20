@@ -33,9 +33,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.MyViewHolder
     // Keep a reference to the activity.
     private Activity activity;
 
-    // Keep a reference to a Bitmap.
-    private Bitmap placeHolder;
-
     // List for the ImageUpload Objects.
     private List<ImageUpload> imageUploadList;
 

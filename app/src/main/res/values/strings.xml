@@ -20,10 +20,17 @@
     <!-- Sensor settings-->
     <string name="pref_title_display_name">Username</string>
     <string name="pref_default_display_name">Anonymous User</string>
+    <string name="lightSummary">Enable light sensor input to change stroke opacity.</string>
+    <string name="lightTitle">Dynamic Opacity</string>
+    <string name="volumeSwitch">volume_switch</string>
+    <string name="volumeSummary">Enable volume detection to change stroke width.</string>
+    <string name="volumeTitle">Dynamic Stroke Width</string>
+    <string name="lightSwitch">light_switch</string>
+    <string name="strokeType">stroke_type</string>
+    <string name="username">username</string>
+    <string name="strokeTitle">Stroke Type</string>
 
-    <string name="light_sensor_summary">The light sensor detects the amount of light hitting the
-        front of the device, and maps LIGHT INTENSITY to COLOR.</string>
-
+    <!--String resources for the stroke type list preference-->
     <string-array name="stroke_list_titles">
         <item>Circle</item>
         <item>Square</item>
@@ -36,35 +43,15 @@
     </string-array>
 
     <!-- About settings section-->
-    <string-array name="list_preference_entries">
-        <item>Entry 1</item>
-        <item>Entry 2</item>
-        <item>Entry 3</item>
-    </string-array>
-
-    <string-array name="list_preference_entry_values">
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
-    </string-array>
-
-    <string-array name="multi_select_list_preference_default_value" />
-
+    <string name="about_summary">This app is cool!!</string>
 
     <!-- Special mode settings-->
-
-
-    <string name="lightSummary">Enable light sensor input to change stroke opacity.</string>
-    <string name="lightTitle">Dynamic Opacity</string>
-    <string name="volumeSwitch">volume_switch</string>
-    <string name="volumeSummary">Enable volume detection to change stroke width.</string>
-    <string name="volumeTitle">Dynamic Stroke Width</string>
-    <string name="lightSwitch">light_switch</string>
-    <string name="strokeType">stroke_type</string>
-    <string name="username">username</string>
-    <string name="strokeTitle">Stroke Type</string>
-    <string name="spiralSummary">Disables gyroscopic input. Moves the paint brush in a spiral motion to and from the center automatically.</string>
-    <string name="radialSummary">Disable gyroscopic input. Moves the paint brush radially outwards and inwards from the center. Rotates periodically.</string>
+    <string name="radial_title">Radial Motion</string>
+    <string name="spiral_title">Spiral Motion</string>
+    <string name="spiralSummary">Disables gyroscopic input. Moves the paint brush in a spiral motion
+        to and from the center automatically.</string>
+    <string name="radialSummary">Disable gyroscopic input. Moves the paint brush radially outwards
+        and inwards from the center. Rotates periodically.</string>
 
     <!--Bottom navigation option strings-->
     <string name="settings_nav">Settings</string>

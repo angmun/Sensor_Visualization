@@ -9,7 +9,7 @@ import java.util.ArrayList;
  * selects the 'Radial Motion' special mode in preferences.
  */
 public class Radial {
-    // Keep track of the coordinates you want to draw at
+    // Instance variables
     private double angleStep;
     private double currAngle1;
     private double currAngle2;

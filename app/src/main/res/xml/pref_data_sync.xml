@@ -1,10 +1,9 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- About section-->
-
     <Preference
         android:selectable="false"
         android:enabled="true"
         android:key="about"
-        android:summary="This app is cool!!" />
+        android:summary="@string/about_summary" />
 
 </PreferenceScreen>

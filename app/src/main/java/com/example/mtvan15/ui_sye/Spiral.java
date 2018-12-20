@@ -7,7 +7,7 @@ import android.graphics.Canvas;
  * selects the 'Radial Motion' special mode in preferences.
  */
 public class Spiral {
-
+        // Instance variables
         private double angleStep;
         private double currAngle;
         private int dimX;

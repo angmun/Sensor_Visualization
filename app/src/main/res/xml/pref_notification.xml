@@ -4,16 +4,15 @@
     <SwitchPreference
         android:defaultValue="false"
         android:key="spiralMotion"
-        android:title="Spiral Motion"
+        android:title="@string/spiral_title"
         android:summary="@string/spiralSummary"
         />
 
     <SwitchPreference
         android:defaultValue="false"
         android:key="radialMotion"
-        android:title="Radial Motion"
+        android:title="@string/radial_title"
         android:summary="@string/radialSummary"
-
         />
 
 </PreferenceScreen>

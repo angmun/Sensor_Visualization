@@ -115,9 +115,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SilenceDetector silenceDetector;
     private double threshold;
 
-    // Keep a reference to our touchListener class
-    private TouchListener touchListener;
-
     // Keep a reference to a the spiral and radial classes for animation purposes
     // These keep track of points internally, and create subsequent drawing coordinates
     // Based on internal parameters and parametrics.
@@ -154,15 +151,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private String descriptionString;
     private int imageNum = -1;
     private String encodedImage;
-    private String baseImage;
 
 
     // Variables that represent different queries from SharedPreferences
     // These store important information about the application state throughout
     // the application life cycle.
     SharedPreferences sharedPreferences;
-    SwitchPreference radialSwitchPref;
-    SwitchPreference spiralSwitchPref;
 
     String username;
     Boolean light_switch;
