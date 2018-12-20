@@ -21,6 +21,11 @@ public class Radial {
     private int radius;
     private int radiusStep;
 
+    /***
+     * Radial class constructor.
+     * @param dim1 window width
+     * @param dim2 window height
+     */
     public Radial(int dim1, int dim2){
         // Keep track of the width and height of the window.
         dimX = dim1;
@@ -33,6 +38,8 @@ public class Radial {
             maxRadius = dimY / 2;
         }
 
+        // The initial angles for the four radial paths as well as the change when next is called
+        // to find the next coordinates.
         currAngle1 = 0.0;
         currAngle2 = Math.PI/2;
         currAngle3 = Math.PI;
@@ -40,6 +47,8 @@ public class Radial {
 
         angleStep = Math.PI / 64;
 
+        // The initial radius value as well as the change when next is called to find the next
+        // coordinates.
         radiusStep = 1;
         radius = 1;
 
@@ -60,14 +69,14 @@ public class Radial {
                 radiusStep = 1;
             }
         }
-        // Update the angle you want to use in this situation.
+        // Update the radius and angles you want to use in this situation.
         radius += radiusStep;
         currAngle1 += angleStep;
         currAngle2 += angleStep;
         currAngle3 += angleStep;
         currAngle4 += angleStep;
 
-        // Now get the coordinates as expressed by Sin() and Cos().
+        // Now get and return the coordinates as expressed by Sin() and Cos().
         Point p1 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle1)), (int) ((dimY/2) + radius * Math.sin(currAngle1)));
         Point p2 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle2)), (int) ((dimY/2) + radius * Math.sin(currAngle2)));
         Point p3 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle3)), (int) ((dimY/2) + radius * Math.sin(currAngle3)));

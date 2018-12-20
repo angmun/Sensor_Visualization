@@ -155,7 +155,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_general);
-            setHasOptionsMenu(true);
 
             // Bind the summaries of EditText and List preferences
             // to their values. When their values change, their summaries are
@@ -164,20 +163,11 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
             bindPreferenceSummaryToValue(findPreference("username"));
             bindPreferenceSummaryToValue(findPreference("stroke_type"));
         }
-
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            int id = item.getItemId();
-            if (id == android.R.id.home) {
-                this.getActivity().finish();
-                return true;
-            }
-            return super.onOptionsItemSelected(item);
-        }
     }
 
     /**
-     * The Notification Preference fragment class, which manages and holds our special methods preferences.
+     * The Notification Preference fragment class, which manages and holds our special methods
+     * preferences.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class NotificationPreferenceFragment extends PreferenceFragment {
@@ -185,18 +175,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_notification);
-            setHasOptionsMenu(true);
 
-        }
-
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            int id = item.getItemId();
-            if (id == android.R.id.home) {
-                this.getActivity().finish();
-                return true;
-            }
-            return super.onOptionsItemSelected(item);
         }
     }
 
@@ -206,7 +185,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
     }
 
     /**
-     * The Data Synce Preference fragment class, in which we have information regarding our application i.e. the About section.
+     * The Data Sync Preference fragment class, in which we have information regarding our
+     * application i.e. the About section.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class DataSyncPreferenceFragment extends PreferenceFragment {
@@ -214,17 +194,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity  {
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_data_sync);
-            setHasOptionsMenu(true);
-        }
-
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            int id = item.getItemId();
-            if (id == android.R.id.home) {
-                this.getActivity().finish();
-                return true;
-            }
-            return super.onOptionsItemSelected(item);
         }
     }
 }

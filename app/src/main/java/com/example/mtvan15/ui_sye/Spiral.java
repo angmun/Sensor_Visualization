@@ -4,7 +4,7 @@ import android.graphics.Canvas;
 
 /***
  * The spiral class generates coordinates for drawing a spiral pattern on the canvas if a user
- * selects the 'Radial Motion' special mode in preferences.
+ * selects the 'Spiral Motion' special mode in preferences.
  */
 public class Spiral {
         // Instance variables
@@ -16,6 +16,11 @@ public class Spiral {
         private int radius;
         private int radiusStep;
 
+    /***
+     * Spiral class constructor.
+      * @param dim1 window width
+     * @param dim2 window height
+     */
     public Spiral(int dim1, int dim2){
         // Keep track of the width and height of the window.
         dimX = dim1;
@@ -28,9 +33,12 @@ public class Spiral {
             maxRadius = dimY / 2;
         }
 
+        // The initial angle as well as the change when next is called to find the next coordinates.
         currAngle = 0.0;
         angleStep = Math.PI / 32;
 
+        // The initial radius value as well as the change when next is called to find the next
+        // coordinates.
         radiusStep = 1;
         radius = 1;
 
@@ -51,11 +59,11 @@ public class Spiral {
                 radiusStep = 1;
             }
         }
-        // Update the angle you want to use in this situation.
+        // Update the radius and angle you want to use in this situation.
         radius += radiusStep;
         currAngle += angleStep;
 
-        // Now get the coordinates as expressed by Sin() and Cos().
+        // Now get and return the coordinates as expressed by Sin() and Cos().
         return new int[]{(int) ((dimX/2) + radius * Math.cos(currAngle)), (int) ((dimY/2) + radius * Math.sin(currAngle))};
     }
 }
