@@ -3,7 +3,8 @@ package com.example.mtvan15.ui_sye;
 import android.graphics.Canvas;
 
 /***
- * The spiral class generates coordinates for drawing a spiral pattern on the canvas if a user selects the 'Radial Motion' special mode in preferences.
+ * The spiral class generates coordinates for drawing a spiral pattern on the canvas if a user
+ * selects the 'Radial Motion' special mode in preferences.
  */
 public class Spiral {
 
@@ -16,11 +17,11 @@ public class Spiral {
         private int radiusStep;
 
     public Spiral(int dim1, int dim2){
-        // Keep track of the width and height of the window
+        // Keep track of the width and height of the window.
         dimX = dim1;
         dimY = dim2;
 
-        // Keep track of the minimum dimension so that it will always draw on the screen
+        // Keep track of the minimum dimension so that it will always draw on the screen.
         if(dimX < dimY) {
             maxRadius = dimX / 2;
         }else{
@@ -35,8 +36,12 @@ public class Spiral {
 
     }
 
+    /***
+     * Generate the next points at which to draw on the canvas to continue the spiral pattern.
+     * @return an array of points at which to draw on the canvas
+     */
     public int[] next(){
-        // Check to see if the maximum radius has been exceeded
+        // Check to see if the maximum radius has been exceeded.
         if(radius + radiusStep >= maxRadius){
             if(radiusStep > 0){
                 radiusStep = -1;
@@ -46,11 +51,11 @@ public class Spiral {
                 radiusStep = 1;
             }
         }
-        // Update the angle you want to use in this situation
+        // Update the angle you want to use in this situation.
         radius += radiusStep;
         currAngle += angleStep;
 
-        // Now get the coordinates as expressed by Sin() and Cos()
+        // Now get the coordinates as expressed by Sin() and Cos().
         return new int[]{(int) ((dimX/2) + radius * Math.cos(currAngle)), (int) ((dimY/2) + radius * Math.sin(currAngle))};
     }
 }

@@ -5,7 +5,8 @@ import android.graphics.Point;
 import java.util.ArrayList;
 
 /***
- * The radial class generates coordinates for drawing a radial pattern on the canvas if a user selects the 'Radial Motion' special mode in preferences.
+ * The radial class generates coordinates for drawing a radial pattern on the canvas if a user
+ * selects the 'Radial Motion' special mode in preferences.
  */
 public class Radial {
     // Keep track of the coordinates you want to draw at
@@ -21,11 +22,11 @@ public class Radial {
     private int radiusStep;
 
     public Radial(int dim1, int dim2){
-        // Keep track of the width and height of the window
+        // Keep track of the width and height of the window.
         dimX = dim1;
         dimY = dim2;
 
-        // Keep track of the minimum dimension so that it will always draw on the screen
+        // Keep track of the minimum dimension so that it will always draw on the screen.
         if(dimX < dimY) {
             maxRadius = dimX / 2;
         }else{
@@ -44,8 +45,12 @@ public class Radial {
 
     }
 
+    /***
+     * Generate the next points at which to draw on the canvas to continue the radial pattern.
+     * @return an array of points at which to draw on the canvas
+     */
     public int[] next(){
-        // Check to see if the maximum radius has been exceeded
+        // Check to see if the maximum radius has been exceeded.
         if(radius + radiusStep >= maxRadius){
             if(radiusStep > 0){
                 radiusStep = -1;
@@ -55,20 +60,19 @@ public class Radial {
                 radiusStep = 1;
             }
         }
-        // Update the angle you want to use in this situation
+        // Update the angle you want to use in this situation.
         radius += radiusStep;
         currAngle1 += angleStep;
         currAngle2 += angleStep;
         currAngle3 += angleStep;
         currAngle4 += angleStep;
 
-
+        // Now get the coordinates as expressed by Sin() and Cos().
         Point p1 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle1)), (int) ((dimY/2) + radius * Math.sin(currAngle1)));
         Point p2 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle2)), (int) ((dimY/2) + radius * Math.sin(currAngle2)));
         Point p3 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle3)), (int) ((dimY/2) + radius * Math.sin(currAngle3)));
         Point p4 = new Point((int) ((dimX/2) + radius * Math.cos(currAngle4)), (int) ((dimY/2) + radius * Math.sin(currAngle4)));
 
         return new int[]{p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y};
-
     }
 }

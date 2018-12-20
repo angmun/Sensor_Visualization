@@ -41,22 +41,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 /***
- * The Community activity displays images saved by the community through the application and provides the user with the option to download an image copy to modify as they desire, known as 'remixing' in or application.
+ * The Community activity displays images saved by the community through the application and
+ * provides the user with the option to download an image copy to modify as they desire, known as
+ * 'remixing' in or application.
  */
 public class Community extends AppCompatActivity {
     // A list of images from Firebase to display in a recycler view on the Community activity.
     List<ImageUpload> imageList;
 
-    // A view that allows us to display images as we download them from the Firebase database where they are saved.
+    // A view that allows us to display images as we download them from the Firebase database where
+    // they are saved.
     RecyclerView recyclerView;
 
-    // An image adapter required to manage view holder objects for images to be displayed in the recycler view.
+    // An image adapter required to manage view holder objects for images to be displayed in the
+    // recycler view.
     ImageAdapter adapter;
 
-    // An integer value that allows us to track the saved image's id in Firebase to prepare for display in the recycler view.
+    // An integer value that allows us to track the saved image's id in Firebase to prepare for
+    // display in the recycler view.
     int imageNum = -1;
 
-    // The required data for a single image downloaded from the Firebase database for its display in the recycler view.
+    // The required data for a single image downloaded from the Firebase database for its display
+    // in the recycler view.
     String title;
     String description;
     Bitmap image;
@@ -66,7 +72,8 @@ public class Community extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_community);
 
-        // Initialize the variables required to set up the recycler view for image display from the Firebase database.
+        // Initialize the variables required to set up the recycler view for image display from the
+        // Firebase database.
         imageList = new ArrayList<ImageUpload>();
         recyclerView = findViewById(R.id.recyclerView);
 
@@ -81,7 +88,10 @@ public class Community extends AppCompatActivity {
     }
 
     /***
-     * Sets up saved images for display on the recycler view. An image, its title and description are gotten from the respective entry in the Firebase database, and this information is used to create ImageUpload objects that are added to a list. The list is passed to our image adapter, which handles image display onto the recycler view.
+     * Sets up saved images for display on the recycler view. An image, its title and description
+     * are gotten from the respective entry in the Firebase database, and this information is used
+     * to create ImageUpload objects that are added to a list. The list is passed to our image
+     * adapter, which handles image display onto the recycler view.
      */
     private void prepareImages(){
         // Get the image count in the Firebase database.
@@ -108,11 +118,13 @@ public class Community extends AppCompatActivity {
                 for(int i = 0; i < iterations; i ++){
                     // Get the respective data entry with an id corresponding to imageNum's value.
                     imageRef = database.getReference(String.valueOf(imageNum));
-                    // We only need to read data once after which we do not require continuous listening for data changes.
+                    // We only need to read data once after which we do not require continuous
+                    // listening for data changes.
                     imageRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
-                            // Initialize an arraylist to store values of a single image entry's properties.
+                            // Initialize an arraylist to store values of a single image entry's
+                            // properties.
                             ArrayList<String> data = new ArrayList<>();
                             for(DataSnapshot imageSnapshot : dataSnapshot.getChildren()){
                                 String newData = imageSnapshot.getValue(String.class);
@@ -124,12 +136,15 @@ public class Community extends AppCompatActivity {
 
                             // Convert the base64 string into a bitmap we can display.
                             byte[] decodedString = Base64.decode(stringImage, Base64.DEFAULT);
-                            image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                            image = BitmapFactory.decodeByteArray(decodedString, 0,
+                                    decodedString.length);
 
-                            // Make our ImageUpload Object and add it to our list of images to be displayed on the recylcer view.
+                            // Make our ImageUpload Object and add it to our list of images to be
+                            // displayed on the recylcer view.
                             imageList.add(new ImageUpload(title, description, image));
 
-                            // Notify the adapter to update the recycler view as we have added to the list of images to display.
+                            // Notify the adapter to update the recycler view as we have added to
+                            // the list of images to display.
                             adapter.notifyDataSetChanged();
                         }
 

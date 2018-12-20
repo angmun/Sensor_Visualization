@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--View layout for a single image in the recycler view, displaying the image, title, description
+and a button to select the image for 'remixing'-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -25,7 +27,7 @@
         android:fontFamily="monospace"
         android:layout_gravity="center_vertical|start"
         android:id="@+id/rv_item_title"
-        android:text="@string/defaultstring"/>
+        android:text="@string/default_string"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -36,16 +38,14 @@
         android:fontFamily="monospace"
         android:layout_gravity="center_vertical|start"
         android:id="@+id/rv_item_description"
-        android:text="@string/defaultstring"/>
+        android:text="@string/default_string"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:padding="10dp"
         android:layout_margin="10dp"
-        android:text="Remix Image"
+        android:text="@string/remix_image"
         android:id="@+id/saveButton"/>
-
-
 
 </LinearLayout>
