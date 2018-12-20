@@ -71,25 +71,37 @@ import be.tarsos.dsp.pitch.PitchDetectionHandler;
 import be.tarsos.dsp.pitch.PitchDetectionResult;
 import be.tarsos.dsp.pitch.PitchProcessor;
 
+
+/**
+ * MainActivity maintains control/focus of sensor and audio input. The MainActivity also handles
+ * distinct user permissions when the application is first started to ensure proper application
+ * behavior. Additionally, MainActivity is responsible for drawing visuals that the user sees
+ * once interacting with the application. MainActivity contains a canvas that dynamically draws
+ * visuals based on environmental cues, noise, and volume. The user may control different types of
+ * interactions using a BottomNavigationView containing various options. Users have the option
+ * of navigating to settings, enabling touch drawing, enabling sensor drawing, clearing the canvas,
+ * as well as saving desired images. MainActivity also contains a globe button to enable community
+ * sharing and interactions.
+ */
 public class MainActivity extends AppCompatActivity implements SensorEventListener, AudioProcessor {
 
-    // Values to keep track of the largest magnitudes seen so far
+    // Values that are used to actively map sensor values within certain ranges
+    // These values represent the max input seen thus far for scaling purposes.
     private float magnitude = 3.14f;
     private float colorMagnitude = 1f;
     private float lightMagnitude = 1f;
     private float sizeMagnitude = 1f;
 
-    // Check whether certain sensors are enabled
+    // Booleans to check whether certain sensors are or are not enabled in the application
+    // These booleans control conditional logic, especially related to drawSomething( ) as well
+    // as enableSensor( )
     private boolean gyroIsEnabled = true;
     private boolean touchIsEnabled = false;
     private boolean settings = false;
     private boolean audioThread = false;
 
-    // !! Spiral Code !!
-    private boolean spiralEnabled = true;
-
-    // Setup UI View Elements
-    private Button button;
+    // Setup basic UI elements for the MainActivity screen. This includes a canvas, a bitmap,
+    // as well as an image view.
     private Canvas canvas;
     private Paint paint;
     private Bitmap bitmap;
@@ -106,7 +118,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // Keep a reference to our touchListener class
     private TouchListener touchListener;
 
-    // Keep a reference to a Spiral Class
+    // Keep a reference to a the spiral and radial classes for animation purposes
+    // These keep track of points internally, and create subsequent drawing coordinates
+    // Based on internal parameters and parametrics.
     private Spiral spiral;
     private Radial radial;
 
@@ -120,6 +134,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int height;
 
     // Determine whether sensors can start writing values
+    // This boolean was implemented because of concurrency issues
+    // related to the combination of sensors and active audio threads
     private boolean begin = false;
 
     // Setup Firebase Cloud Storage
@@ -127,21 +143,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     FirebaseDatabase database = FirebaseDatabase.getInstance();
 
 
-    // Keep track of permissions for the application
+    // Keep track of permissions for the application along with the activity
     private final static int PERMISSION_REQUEST_CODE = 999;
     private boolean permissions_granted;
-    private final static String LOGTAG =
-            MainActivity.class.getSimpleName();
+    private final static String LOGTAG = MainActivity.class.getSimpleName();
 
-    // Current Image Name for Image Created
+    // Variables representing image encoding and identification when working with
+    // FireBase as the database platform
     private String saveString;
     private String descriptionString;
-
     private int imageNum = -1;
     private String encodedImage;
-
     private String baseImage;
 
+
+    // Variables that represent different queries from SharedPreferences
+    // These store important information about the application state throughout
+    // the application life cycle.
     SharedPreferences sharedPreferences;
     SwitchPreference radialSwitchPref;
     SwitchPreference spiralSwitchPref;
@@ -171,6 +189,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     /**
      * onResume( ) life cycle method. Register the sensorListeners in here assuring they are ready for data.
+     * This method queries entries in SharedPreferences such that the application state will
+     * be remembered and updated over time. This includes settings selected in the specific
+     * Settings Activity for light input, volume detection, as well as various other drawing aspects.
+     * This method also initializes a saved bitmap IF one was selected from the community page.
+     * Selecting an image from the community page for REMIX pulls the entry from FireBase, and allows
+     * the user to build upon the image, and truly make it their own creation.
      */
     @Override
     protected void onResume() {
@@ -178,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
 
-        // Load User Preferences
+        // Load User Preferences For...
         // username
         // light_switch
         // volume_Switch
@@ -192,9 +216,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         spiralMotion = sharedPreferences.getBoolean("spiralMotion", false);
         radialMotion = sharedPreferences.getBoolean("radialMotion", false);
 
+        // Load a shared bitmap if one exists in the current application state
+        // Otherwise, initialize the string to an empty string, representing NO selection from
+        // the community gallery page.
         String encodedBitmap = sharedPreferences.getString("background", "");
 
-
+        // If there was a selected image from the community gallery page, then load a scaled
+        // version of it to the imageView such that it matches the dimensions of the current drawing
+        // canvas. This ensures a consistent experience across devices without cropping one's image
+        // or artistic creation.
         if(!encodedBitmap.equals("")){
             this.width = sharedPreferences.getInt("width", 0);
             this.height = sharedPreferences.getInt("height", 0);
@@ -206,13 +236,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         }
 
+        // Settings = True represents navigation to MainActivity FROM the Settings Activity.
+        // Settings = False represents the current state of the application in MainActivity.
+        // This variable was implemented to allow for a consistent drawing experience regardless
+        // of navigation patterns or frequency there of.
         if (settings) {
             begin = true;
             settings = false;
         }
 
 
-
+        // Check to see if an audio thread already exists. It is important to only make an audio thread
+        // if the correct permissions were granted in the application. This was placed in onResume( )
+        // to avoid concurrency issues with checkSelfPermissions( ) and the createAudioThread( ) methods
+        // since they operate very independently from one another.
         if (!audioThread && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
             this.permissions_granted = true;
@@ -224,12 +261,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
         // Register a listener for the gyroscope sensor
         sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
-        // Now we are ready to start
+        // Now we are ready to start!!!
 
     }
 
     /**
-     * onCreate( ) life cycle method. Handles UI elements and checks for permissions.
+     * onCreate( ) life cycle method. Handles UI elements and checks for permissions prior to creating
+     * dependent objects (such as the AudioThread, etc.). onCreate( ) also enables read and write
+     * quereies to the FireBase noSQL database by keeping a global reference to the database object.
+     * The BottomNavigationView is attached to a listener which enables active detection of navigation
+     * events and settings
      * @param savedInstanceState
      */
     @Override
@@ -255,12 +296,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
-        // Setup Firebase Storage
+        // Setup Firebase Storage by getting an instance of the databse with a particular reference
+        // or identifer. The myRef object takes sa specific input parameter representing a key
+        // (corresponding to data) that wants to actively be retrieved.
         mStorageRef = FirebaseStorage.getInstance().getReference();
         DatabaseReference myRef = database.getReference("message");
 
+
         imageView = findViewById(R.id.imageView);
-        //this.touchListener = new TouchListener();
+
+        // Set an onTouchListener for the imageView which will allow for touch input and drawing
+        // as long as touchIsEnabled = True. This value is controlled by the corresponding user
+        // setting of Touch Draw in the main application window.
         imageView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -274,13 +321,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        // Set an initial drawing location that is in the middle of the screen, determined by the
+        // width and height of the imageView attached to the drawing canvas object.
         this.x = width /2;
         this.y = height / 2;
 
+        // Construct a new Paint( ) object which is extensively used in the drawSomething( ) method.
+        // The Paint( ) object is a build in Java/Android library which allows for convenient grouping
+        // of graphics parameters such as color, stroke width, opacity, etc.
         paint = new Paint();
 
+        // Setting a default Paint( ) object color upon creation. This color never actually gets used
+        // but it was initialized as such for debugging purposes, and for maintining consistent code
+        // style.
         paint.setColor(ResourcesCompat.getColor(getResources(), R.color.colorAccent, null));
 
+        // Creating a Sensor Manager Object. The SensorManager is a built in Android Java class that
+        // allows for multiple sensor management, data retrieval, and more. It is based off of the
+        // Sensor_Service which runs consistently in the background, thus allowing for continuous data
+        // retrieval.
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -293,6 +352,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     /**
      * BottomNavigationView is the primary navigation element in our application.
      * This method handles events based on which bottom navigation tab was selected.
+     * Options include enabling touch drawing, sensor drawing, settings, clearing, as well as
+     * image saving/uploading.
      */
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -324,27 +385,43 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Checks the permissions for AUDIO, READ/WRITE_EXTERNAL_STORAGE
-     * @param requestCode
-     * @param permissions
-     * @param grantResults
+     * Checks the permissions for AUDIO, READ/WRITE_EXTERNAL_STORAGE. These are necessary for our
+     * application to function properly. As a result, if the permissions are denied in any way shape
+     * or form, then the application quits gracefully with an explanation of why those permissions
+     * were required in the first place. The explanation is shown in an AlertDialog box such that
+     * it appears only if a permission was DENIED, and a rationale is required. Built in Android
+     * permissions methods allow for easy retrieval of this information, and a custom layout
+     * was created to use inside of the AlertDialog box for extensibility if more in depth explanations
+     * were to be provided at a later time.
+     * @param requestCode a custom requestCode which was determined at the beginning of this application
+     * @param permissions a list of specified permissions that the application requests access to
+     * @param grantResults a list of the permissions that were given by the user and can be checked
+     *                     programmatically based on their function in the application.
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        // If the request code matches what was originally asked for in the application upon start...
         if (requestCode == PERMISSION_REQUEST_CODE) {
-
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                // If all permissions were successfully granted upon starting/installing the application
+                // then continue with the rest of the application.
                 this.permissions_granted = true;
-
 
             }
             else {
+                // Not all permissions were granted. We check to see which permission was denied,
+                // and show an appropriate dialog box with a rational and explanation about why
+                // we need to the desired features for our app to function properly.
                 this.permissions_granted = false;
                 if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)){
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setTitle("Please Grant Permissions for External Storage");
 
+                    // Create a custom LinearLayout for the AlertDialog box that contains a TextView
+                    // with custom padding, margins, and text. This is all done programmatically based
+                    // on what explanation needs to be shown at the given point in time.
                     LinearLayout layout = new LinearLayout(this);
                     layout.setOrientation(LinearLayout.VERTICAL);
                     final TextView text = new TextView(this);
@@ -355,6 +432,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     builder.setPositiveButton("K.", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
+                            // This Android method gracefully exits and quits all background
+                            // events related to the application itself. This is important to call
+                            // when the proper permissions were not supplied at the beginning of the
+                            // application.
                             android.os.Process.killProcess(android.os.Process.myPid());
                         }
                     });
@@ -363,6 +444,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setTitle("Please Grant Permissions for Audio");
 
+                    // Create a custom LinearLayout for the AlertDialog box that contains a TextView
+                    // with custom padding, margins, and text. This is all done programmatically based
+                    // on what explanation needs to be shown at the given point in time.
                     LinearLayout layout = new LinearLayout(this);
                     layout.setOrientation(LinearLayout.VERTICAL);
                     final TextView text = new TextView(this);
@@ -373,6 +457,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     builder.setPositiveButton("K.", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
+                            // This Android method gracefully exits and quits all background
+                            // events related to the application itself. This is important to call
+                            // when the proper permissions were not supplied at the beginning of the
+                            // application.
                             android.os.Process.killProcess(android.os.Process.myPid());
                         }
                     });
@@ -386,13 +474,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+    /**
+     * The ActionBarMenu allows for user interaction near the top of the application screen.
+     * @param menu is an ActionBarMenu to-be initialized. This menu is in turn inflated for creation.
+     * @return
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.action_bar_menu, menu);
         return super.onCreateOptionsMenu(menu);
     }
 
+    /**
+     * onOptionsItemSelected( ) returns an ID of the button that was selected. In our application
+     * this serves the purposes of identifying when the communityButton was selected to start
+     * an intent to the corresponding community gallery activity.
+     * @param item is the ActionBarMenu item that was selected. The ID refers to the ID of the
+     *             corresponding UI element declared in XML.
+     * @return
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
