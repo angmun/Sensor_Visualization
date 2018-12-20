@@ -4,6 +4,9 @@ import android.graphics.Point;
 
 import java.util.ArrayList;
 
+/***
+ * The radial class generates coordinates for drawing a radial pattern on the canvas if a user selects the 'Radial Motion' special mode in preferences.
+ */
 public class Radial {
     // Keep track of the coordinates you want to draw at
     private double angleStep;

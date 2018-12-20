@@ -53,7 +53,7 @@ public class Community extends AppCompatActivity {
     // An image adapter required to manage view holder objects for images to be displayed in the recycler view.
     ImageAdapter adapter;
 
-    // An integer value that allows us to track the number of images left to prepare for display in the recycler view.
+    // An integer value that allows us to track the saved image's id in Firebase to prepare for display in the recycler view.
     int imageNum = -1;
 
     // The required data for a single image downloaded from the Firebase database for its display in the recycler view.
@@ -81,40 +81,38 @@ public class Community extends AppCompatActivity {
     }
 
     /***
-     * Sets up saved images for display on the recycler view. An image, its title and description are 
+     * Sets up saved images for display on the recycler view. An image, its title and description are gotten from the respective entry in the Firebase database, and this information is used to create ImageUpload objects that are added to a list. The list is passed to our image adapter, which handles image display onto the recycler view.
      */
     private void prepareImages(){
-        // We need firebase calls
-        //Citation: https://www.androidhive.info/2016/01/android-working-with-recycler-view/
-
-        // Get the count of the last picture in the data base
-        // Write a message to the database
+        // Get the image count in the Firebase database.
         final FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference myRef = database.getReference("imageNum");
 
-        // Read from the database
+        // Read saved image entries from the database.
         myRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 // This method is called once with the initial value and again
                 // whenever data at this location is updated.
+                // Update the image count if modified.
                 long value = dataSnapshot.getValue(Long.class);
                 imageNum = (int) value;
-                int iterations = imageNum;
-                Log.d("imageNumCom", "Value is: " + imageNum);
 
+                // Save the initial value of imageNum for use in the for loop condition.
+                int iterations = imageNum;
 
                 DatabaseReference imageRef = database.getReference(String.valueOf(imageNum));
 
 
-                // Read from the database
-
+                // Read from the database.
                 for(int i = 0; i < iterations; i ++){
+                    // Get the respective data entry with an id corresponding to imageNum's value.
                     imageRef = database.getReference(String.valueOf(imageNum));
+                    // We only need to read data once after which we do not require continuous listening for data changes.
                     imageRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
-
+                            // Initialize an arraylist to store values of a single image entry's properties.
                             ArrayList<String> data = new ArrayList<>();
                             for(DataSnapshot imageSnapshot : dataSnapshot.getChildren()){
                                 String newData = imageSnapshot.getValue(String.class);
@@ -123,16 +121,16 @@ public class Community extends AppCompatActivity {
                             description = data.get(0);
                             title = data.get(2);
                             String stringImage = data.get(1);
+
+                            // Convert the base64 string into a bitmap we can display.
                             byte[] decodedString = Base64.decode(stringImage, Base64.DEFAULT);
                             image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
 
-                            // Make our ImageUpload Object
+                            // Make our ImageUpload Object and add it to our list of images to be displayed on the recylcer view.
                             imageList.add(new ImageUpload(title, description, image));
 
+                            // Notify the adapter to update the recycler view as we have added to the list of images to display.
                             adapter.notifyDataSetChanged();
-
-                            Log.d("imageTitle", title);
-                            Log.d("imageTitle", description);
                         }
 
                         @Override
@@ -141,11 +139,9 @@ public class Community extends AppCompatActivity {
                         }
                     });
 
+                    // Move to a previous data entry in the Firebase database.
                     imageNum--;
                 }
-
-                /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
             }
 
@@ -154,8 +150,6 @@ public class Community extends AppCompatActivity {
 
             }
         });
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        Log.d("ImageList", String.valueOf(imageList.size()));
     }
 
 }

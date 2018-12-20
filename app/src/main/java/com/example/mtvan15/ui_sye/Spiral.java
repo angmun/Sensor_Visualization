@@ -2,6 +2,9 @@ package com.example.mtvan15.ui_sye;
 
 import android.graphics.Canvas;
 
+/***
+ * The spiral class generates coordinates for drawing a spiral pattern on the canvas if a user selects the 'Radial Motion' special mode in preferences.
+ */
 public class Spiral {
 
         private double angleStep;
