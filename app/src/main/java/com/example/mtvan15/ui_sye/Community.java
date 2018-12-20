@@ -128,40 +128,6 @@ public class Community extends AppCompatActivity {
 
                     imageNum--;
                 }
-//                imageRef.addListenerForSingleValueEvent(new ValueEventListener() {
-//                    @Override
-//                    public void onDataChange(DataSnapshot dataSnapshot) {
-//
-//                        ArrayList<String> data = new ArrayList<>();
-//                        for(DataSnapshot imageSnapshot : dataSnapshot.getChildren()){
-//                            String newData = imageSnapshot.getValue(String.class);
-//                            data.add(newData);
-//                        }
-//                        description = data.get(0);
-//                        title = data.get(2);
-//                        String stringImage = data.get(1);
-//                        byte[] decodedString = Base64.decode(stringImage, Base64.DEFAULT);
-//                        image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-//
-//                        // Make our ImageUpload Object
-//                        imageList.add(new ImageUpload(title, description, image));
-//
-//                        imageNum--;
-//
-//                        adapter.notifyDataSetChanged();
-//
-//                        Log.d("imageTitle", title);
-//                        Log.d("imageTitle", description);
-//                    }
-//
-//                    @Override
-//                    public void onCancelled(@NonNull DatabaseError databaseError) {
-//
-//                    }
-//                });
-
-
-
 
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
