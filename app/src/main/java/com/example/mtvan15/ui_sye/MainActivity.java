@@ -188,7 +188,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * onResume( ) life cycle method. Register the sensorListeners in here assuring they are ready for data.
+     * onResume( ) - Android life cycle method. Register the sensorListeners in here assuring they are ready for data.
      * This method queries entries in SharedPreferences such that the application state will
      * be remembered and updated over time. This includes settings selected in the specific
      * Settings Activity for light input, volume detection, as well as various other drawing aspects.
@@ -266,7 +266,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * onCreate( ) life cycle method. Handles UI elements and checks for permissions prior to creating
+     * onCreate( ) - Android life cycle method. Handles UI elements and checks for permissions prior to creating
      * dependent objects (such as the AudioThread, etc.). onCreate( ) also enables read and write
      * quereies to the FireBase noSQL database by keeping a global reference to the database object.
      * The BottomNavigationView is attached to a listener which enables active detection of navigation
@@ -350,7 +350,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * BottomNavigationView is the primary navigation element in our application.
+     * OnNavigationItemSelectedListener( ) - BottomNavigationView is the primary navigation element in our application.
      * This method handles events based on which bottom navigation tab was selected.
      * Options include enabling touch drawing, sensor drawing, settings, clearing, as well as
      * image saving/uploading.
@@ -385,7 +385,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Checks the permissions for AUDIO, READ/WRITE_EXTERNAL_STORAGE. These are necessary for our
+     * onRequestPermissionsResult( ) - Checks the permissions for AUDIO, READ/WRITE_EXTERNAL_STORAGE. These are necessary for our
      * application to function properly. As a result, if the permissions are denied in any way shape
      * or form, then the application quits gracefully with an explanation of why those permissions
      * were required in the first place. The explanation is shown in an AlertDialog box such that
@@ -475,7 +475,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * The ActionBarMenu allows for user interaction near the top of the application screen.
+     * onCreateOptionsMenu( ) - The ActionBarMenu allows for user interaction near the top of the application screen.
      * @param menu is an ActionBarMenu to-be initialized. This menu is in turn inflated for creation.
      * @return
      */
@@ -486,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * onOptionsItemSelected( ) returns an ID of the button that was selected. In our application
+     * onOptionsItemSelected( ) - Returns an ID of the button that was selected. In our application
      * this serves the purposes of identifying when the communityButton was selected to start
      * an intent to the corresponding community gallery activity.
      * @param item is the ActionBarMenu item that was selected. The ID refers to the ID of the
@@ -513,7 +513,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Method calling an intent to the Setting Activity
+     * toSettings( ) - Method calling an intent to the Setting Activity. This method is accessible from the context
+     * of the BottomNavigationView listener. This allows for fast and succinct navigation without
+     * cluttering the BottomNavigationView listener with tedious/redundant code specific to intents.
      */
     private void toSettings(){
         settings = true;
@@ -521,9 +523,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         startActivity(intent);
     }
 
+    /**
+     * clearCanvas( ) - Method called through the BottomNavigationView listener upon user interaction
+     * with the CLEAR button. This resets all scaling values used in our MapRange( ) function,
+     * essentially resetting the drawing parameters for new, dynamic input detection. This method
+     * essentially clears the currently stored bitmap (instance variable) and automatically enables
+     * touch drawing, which was decided as an appropriate setting. This gives users control over what
+     * get's drawn when as soon as the canvas is cleared.
+     */
     private void clearCanvas(){
+        // Reset the scaling factors used in our mapRange( ) function that relate to color, size and light.
+        // These values dynamically change depending on the largest input seen thus far by our program
+        // as well as the sensors.
         begin = false;
-        // Values to keep track of the largest magnitudes seen so far
         magnitude = 3.14f;
         colorMagnitude = 1f;
         lightMagnitude = 1f;
@@ -535,14 +547,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * Enables sensors in our application based on the option selected.
+     * enableSensor( ) - Enables sensors in our application based on the option selected.
      * The main sensor we toggle ON/OFF based on the navigation bar option is the GYROSCOPE
-     * @param gyro
+     * @param gyro corresponds to whether gyroscope sensor input will be used to dynamically map
+     *             positions on the drawing canvas.
      */
     private void enableSensor(boolean gyro){
         if (gyro) {
             gyroIsEnabled = true;
             touchIsEnabled = false;
+            // Get the latest preferences for enabling/disabling spiralMotion in addition to radialMotion
+            // This is important when users switch between settings. If touch was disabled, we must
+            // retrieve the user preference specifically for the amimations or the "special motion".
             spiralMotion = sharedPreferences.getBoolean("spiralMotion", false);
             radialMotion = sharedPreferences.getBoolean("radialMotion", false);
 
@@ -552,15 +568,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             spiralMotion = false;
             radialMotion = false;
         }
-
+        // If there is no current bitmap, make a new bitmap with a white background fill color.
+        // Our code should never reach this point, but as a precaution, this block of code
+        // was added to avoid null pointer exceptions when users switch between various drawing modes
+        // as they use the application for drawing purposes.
         if(this.bitmap == null) {
             this.bitmap = Bitmap.createBitmap(imageView.getWidth(), imageView.getHeight(), Bitmap.Config.ARGB_8888);
             this.bitmap.eraseColor(Color.WHITE);
         }
 
+        // Retrieve the current imageView dimensions. This was added for when enableSensor( ) is
+        // called upon clearing the canvas. Width and height should NOT change. But we added these
+        // assignment statements to assure that the instance variables for width and height would
+        // always correspond to the current imageView object.
         width = imageView.getWidth();
         height = imageView.getHeight();
 
+        // Generate new spiral/radial object animations whenever the user changes modes. This resets
+        // the internal instance variables of these objects, thus starting the animation from the same
+        // canvas drawing point whenever settings are modified.
         this.spiral = new Spiral(width, height);
         this.radial = new Radial(width, height);
 
@@ -569,18 +595,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * Saves the current bitmap to the phone/tablet's gallery
+     * saveImage( ) - Saves the current bitmap to the phone/tablet's gallery and potentially uploads it to the
+     * community FireBase database along with a title, description, and optional username. Upon clicking
+     * the Save button on the BottomNavigationView, this corresponding saveImage( ) method is called.
+     * The user is presented with a pop-up allowing one to enter a Title and Description for the
+     * generated Canvas bitmap. Clicking Save JUST locally stores the image/artwork to the phone's
+     * gallery. Clicking Save/Upload uploads the image to FireBase AND saves it to the phone's
+     * local gallery folder. An AlertDialog was used for consistent UI purposes and appropriate
+     * user interaction during the saving process.
      */
     private void saveImage(){
-        // Save image to gallery
-        //MediaStore.Images.Media.insertImage(getContentResolver(), this.bitmap, "", "");
-        // Push image to firebase if there is an internet connection
-
+        // Stop the animation in background such that the user is saving the most current state of
+        // their application. Set begin = false.
         begin = false;
 
+        // Create an AlertDialog that prompts the user for a Title, Description, and the option
+        // to save the Bitmap locally as a JPG, or also upload it to the cloud through FireBase to
+        // appear in the community gallery.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Save/Upload Image");
 
+        // Create a custom LinearLayout to hold the corresponding EditText objects as well as
+        // the positive/negative buttons, corresponding to Save and Save/Upload respectively.
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         final EditText title = new EditText(this);
@@ -588,15 +624,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         final EditText description = new EditText(this);
         description.setHint("d e s c r i p t i o n");
 
-        // Specify the type of input expected. This is for the image name
+        // Specify the type of input expected. This is for the image name as well as the description.
         title.setInputType(InputType.TYPE_CLASS_TEXT);
         description.setInputType(InputType.TYPE_CLASS_TEXT);
 
+        // Add the corresponding UI elements to the dynamically created Linear Layout.
         layout.addView(title);
         layout.addView(description);
 
+        // Set the builder view to the layout that was just created programmatically. This is
+        // equivalent to writing a separate XML file. However, we found it simpler to implement
+        // this feature programmatically because of its small size and limited implementation.
         builder.setView(layout);
 
+        // A POSITIVE button usually refers to an OK option in such a dialog. Clicking on Save stores
+        // the image locally in the phone gallery, and dismisses the popup automatically so that the
+        // user can efficiently return to the canvas view and continue creating dynamic artwork.
         builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -607,18 +650,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        // A NEGATIVE button usually refers to a CANCEL option. However, we re-purposed this to include
+        // a second separate upload option, allowing the user to upload their generated Bitmap to the
+        // community gallery.
         builder.setNegativeButton("Save and Upload", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 saveString = title.getText().toString();
                 descriptionString = description.getText().toString() + " - " + username;
                 MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, saveString, descriptionString);
-                //begin = true;
 
+                // To work with our Realtime Database in FireBase, we converted the Bitmap to a
+                // Base64 String, which allows us to store it directly in our object hierarchy in the cloud.
+                // First we create a byte output stream, compress the bitmap, and then convert the bitmap
+                // to a ByteArray [ ]. This in turn allows us to create an encoded image using the Base64 class
+                // in Java/Android.
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos); //bm is the bitmap object
                 byte[] byteArray = baos.toByteArray();
 
+                // Save the final encoded image in an appropriate String.
                 encodedImage = Base64.encodeToString(byteArray, Base64.DEFAULT);
 
 
@@ -661,42 +712,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         builder.show();
 
-
-
-
-
-//        String root =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath();
-//
-//        // TODO Check when app is made if the folder exists already, if so, we can't make the dir
-//        File myDir = new File(root);
-//
-//        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-//
-//        String filename = this.saveString + timeStamp + ".jpg";
-//
-//        // Make the file with the desired name
-//        File image = new File(myDir, filename);
-//
-//        // Should never reach here, but you know...
-//        if (image.exists()) image.delete();
-//        try {
-//            FileOutputStream out = new FileOutputStream(image);
-//            this.bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-//            out.flush();
-//            out.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-
     }
 
     /**
-     * Create an AudioThread for tarosDSP such that we can detect PITCH and LOUDNESS.
+     * createAudioThread( ) - Create an AudioThread for tarosDSP such that we can detect PITCH and LOUDNESS. We will then
+     * appropriately map values to various aspects of the user's drawing experience, integrating the
+     * environment with dynamic artistic expression.
+     * This method is required according to the attached documentation for tarsosDSP.
+     * https://github.com/JorenSix/TarsosDSP
      */
     public void createAudioThread(){
-        // Audio Stuff For now
-        // Audio Instance Variables
+
+        // Audio Instance Variables: indicate that we have already started a thread. This is important
+        // to keep track of. If more threads are made, the input size doubles/triples depending on how
+        // many more thread instances are actively running.
         audioThread = true;
+
+        // Get the default audio device from the Android phone/tablet. This is a method provided
+        // directly by the TarsosDSP library and audio implementations.
         AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(22050, 1024, 0);
 
         //Setup loudness detection.
@@ -706,7 +739,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         dispatcher.addAudioProcessor(this);
 
 
-
+        // Whenever a pitch is detected, call the processPitch( ) function which converts a value
+        // in Hx to a corresponding color value.This thread uses an FFT pitching detection/approximation
+        // algorithm based strong/clear tones or tonic changes. The PitchDetectionHandler( ) runs for
+        // the duration of our application, as long as it is open. This allows users to record
+        // environmental conditions/loudness/brightness even when the app is in a paused application state.
         PitchDetectionHandler pdh = new PitchDetectionHandler() {
             @Override
             public void handlePitch(PitchDetectionResult pitchDetectionResult, AudioEvent audioEvent) {
@@ -720,9 +757,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         };
 
+        // Create a new pitchProcessor, which references the PitchDetectionHandler( ) created above. This gives it
+        // direct access to the correct audio thread (separate from the UI thread)
         AudioProcessor pitchProcessor = new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.FFT_YIN, 22050, 1024, pdh);
         dispatcher.addAudioProcessor(pitchProcessor);
 
+        // Create and run a new AudioThread which will begin to collect data and funnel it to the PitchDetectionHandler.
         audioThreadRef = new Thread(dispatcher, "Audio Thread");
         audioThreadRef.start();
 
@@ -730,7 +770,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     /**
      * Process incoming Hz sound data and convert it to a unique color.
-     * @param pitchInHz
+     * @param pitchInHz generated from the pitchProcessor( ) and sent to the PitchDetectionHandler( ) reference.
      */
     public void processPitch(float pitchInHz) {
 
@@ -741,15 +781,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * MapRange Function
+     * mapRange( ) - MapRange function that takes a given value VAL and scales it between a minimum destination
+     * value and a maximum destination value. We separated the various cases for debugging purposes, since it
+     * highlights what return values are being used/associated with a particular variable.
      * @param min destination value
      * @param max destination value
      * @param val value to scale that is within range magnitude
      * @return scaled number between min and max
      */
     public int mapRange(int aCase, int min, int max, float val) {
-
-        // REFORMAT THIS. THIS KIND OF LOOKS LIKE CRAP....
 
         switch(aCase){
             case 0:
@@ -781,48 +821,57 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * DrawSomething Function
-     * @param x location to draw a rectangle (x)
-     * @param y location to draw rectangle (y)
+     * drawSomething( ) -  This function draws either a square, circle, or rectangle at a given
+     * location on the drawing canvas. It retrieves the latest color determined by our soundToColor( )
+     * method, and applies it to the paint object. There are 3 different strokes for the 3 different
+     * shapes, and the stroke is retrieved from SharedUserPreferences during onResume( ) when all
+     * relevant preferences are loaded into our application.
+     * @param x location to draw a circle, square, or triangle
+     * @param y location to draw a circle, square, or triangle
+     * @param bitmap represents the current bitmap to draw on. It is passed by reference.
      */
     public void drawSomething(int x, int y, Bitmap bitmap) {
-        //int height = 300;
-
+        // As long as we have a valid canvas to draw on. We had to add this in because of concurrency
+        // issues with when sensor data was being read in to the application.
         if (width > 0) {
             int radius = this.sizeRadius;
 
-
             paint.setARGB(this.opacity, this.color[0], this.color[1],this.color[2]);
 
+            // Our true mod( ) function will wrap values as expected. We use this for the X and Y coordinates.
             int locX = mod(x, width);
             int locY = mod(y, height);
 
-            //Associate imageview with the bitmap
+            // Associate imageView with the passed bitmap
             imageView.setImageBitmap(bitmap);
-            //Initialize canvas
+
+            // Initialize canvas and give it the passed bitmap
             canvas = new Canvas(bitmap);
-            //Make a rectangle with dimensions
-            //rect.set(locX + rectWidth, locY + rectHeight, locX, locY);
-            //Draw the rectangle
-            //canvas.drawRect(rect, paint);
+
+            // Get the current stroke type from SharedUserPreferences (saved as instance data)
             int stroke = Integer.parseInt(strokeType);
             switch(stroke){
                 case 0:
+                    // Draw a circle onto the canvas with the given paint object
                     canvas.drawCircle(locX, locY, radius, paint);
                     break;
                 case 1:
+                    // Draw a rectangle onto the canvas with the given paint object
                     canvas.drawRect(locX - sizeRadius/2, locY - sizeRadius/2, locX + sizeRadius/2, locY + sizeRadius/2, paint);
                     break;
                 case 2:
+                    // 3 Point( ) objects define a triangle
                     paint.setStyle(Paint.Style.FILL);
                     Point point1_draw = new Point();
                     Point point2_draw = new Point();
                     Point point3_draw = new Point();
 
+                    // Set the coordinates of the 3 points appropriately
                     point1_draw.set(locX, locY);
                     point2_draw.set(locX + sizeRadius / 2, locY - sizeRadius/2);
                     point3_draw.set(locX - sizeRadius / 2, locY - sizeRadius/2);
 
+                    // Generate a Path( ) object with the new points
                     Path path = new Path();
                     path.setFillType(Path.FillType.EVEN_ODD);
                     path.moveTo(point1_draw.x,point1_draw.y);
@@ -831,20 +880,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     path.lineTo(point1_draw.x,point1_draw.y);
                     path.close();
 
+                    // Draw the 3 Point( ) path onto the canvas with the given paint object.
                     canvas.drawPath(path, paint);
                     break;
             }
-            //canvas.drawCircle(locX, locY, radius, paint);
-            //Invalidate
+            // Tell the canvas we are done writing to it before exiting the drawSomething( ) function
             imageView.invalidate();
         }
     }
 
     /**
-     * A true mod function that computes the modulus similar to Python
-     * @param x
-     * @param y
-     * @return
+     * A true mod function that computes the modulus similar to Python. X % Y where X and Y refer
+     * to the parameters of the function.
+     * @param x mod(x, y) = x % y
+     * @param y mod(x, y) = x % y
+     * @return the modulus as it is computed in Python.
      */
     public int mod(int x, int y){
         if(y == 0) return 0;
@@ -852,7 +902,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return y - (Math.abs(x) % y);
     }
 
-
+    /**
+     * onSensorChanged( ) - gets various sensor inputs as they are detected by the device's sensors.
+     * Sensors include GYROSCOPE & LIGHT. This method also contains control flow for automated
+     * drawing mechanisms represented by our Spiral and Radial classes. This gives the user control
+     * and flexibility over what drawing mode they would like to use to create their drawing.
+     * @param sensorEvent is the sensor that was detected by the onSensorChange( ) listener.
+     */
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         // Get the type of the event triggering this method call
@@ -863,7 +919,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             switch (sensorType) {
 
                 case Sensor.TYPE_GYROSCOPE:
-                    // x y z in indices 0 1 2
                     if(this.radialMotion && radial != null){
                         int[] coordinates = radial.next();
                         for(int i = 0; i < 8; i += 2){
@@ -877,16 +932,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         drawSomething(this.x, this.y, this.bitmap);
                     }else if(gyroIsEnabled) {
                         float[] gyroscopeValues = sensorEvent.values;
-
-
-
                         this.x = mapRange(0, 0, imageView.getWidth(), gyroscopeValues[1]);
                         this.y = mapRange(0, 0, imageView.getHeight(), gyroscopeValues[0]);
                         drawSomething(this.x, this.y, this.bitmap);
                     }else if(!touchIsEnabled) {
                         drawSomething(this.x, this.y, this.bitmap);
                     }
-
                     break;
                 case Sensor.TYPE_LIGHT:
                     if(light_switch) {
@@ -901,11 +952,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * onAccuracyChanged( ) - Override method to integrate with the onSensorChanged( ) method as part
+     * of basic sensor implementations in Android.
+     * @param sensor
+     * @param i
+     */
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
 
+    /**
+     * soundToColor( ) - Function defined to map hertz values directly to corresponding colors in
+     * the classic representation of a color wheel. Colors go from red to orange, yellow, green, to blue.
+     * This function directly uses our mapRange( ) function, showing its versatility throughout our
+     * application.
+     * @param hertz representing the detected pitch by the PitchDetectionHandler object and thread. Hz
+     *              is -1 if no pitch is detected.
+     * @return a color array of [r, g, b] after the computation
+     */
     public int[] soundToColor(float hertz){
 
         if (hertz > 0) {
@@ -955,6 +1021,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return true;
     }
 
+    /**
+     * handleSound( ) - function to change the size of the stroke width based on detected volume.
+     * This function assumes a baseline silence level (defined by TarsosDSP). This function also
+     * uses our defined mapRange( ) function to dynamically adjust to the loudest volume level,
+     * and provide an interactive user experience while getting sensor input.
+     */
     private void handleSound(){
 
         if(silenceDetector.currentSPL() > threshold && volume_switch){
@@ -964,6 +1036,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             this.sizeRadius = 10;
         }
     }
+
     @Override
     public void processingFinished() {
 
