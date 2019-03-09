@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!--The application requires permissions to access the internet to upload and download images from Google Firebase-->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--The application requires permissions to access information about WiFi-->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <application
         android:allowBackup="true"

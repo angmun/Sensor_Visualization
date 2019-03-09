@@ -14,27 +14,23 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.media.Image;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiInfo;
 import android.os.Bundle;
-import android.os.Environment;
 import android.preference.PreferenceManager;
-import android.preference.SwitchPreference;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Base64;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -167,6 +163,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     Thread audioThreadRef;
 
+    // Declare a NetworkInfo object to capture Wi-Fi network information
+    WifiInfo wifi_info;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /***
@@ -191,8 +190,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-
-
 
         // Load User Preferences For...
         // username
@@ -491,15 +488,57 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if(id == R.id.communityButton){
-            // Do stuff
-            // Put intent here
-            // TODO disable sensors in a more robust way...
-            this.begin = false;
-            this.settings = true;
-            sharedPreferences.edit().putInt("width", this.width).apply();
-            sharedPreferences.edit().putInt("height", this.height).apply();
-            Intent intent = new Intent(this, Community.class);
-            startActivity(intent);
+            /* Check whether we have access to the internet first before moving into the community
+                activity */
+            WifiManager wifi_manager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+            // WiFi is enabled so we can proceed to the community activity
+            if (wifi_manager.isWifiEnabled()){
+                // Put intent here
+                // TODO disable sensors in a more robust way...
+                this.begin = false;
+                this.settings = true;
+                sharedPreferences.edit().putInt("width", this.width).apply();
+                sharedPreferences.edit().putInt("height", this.height).apply();
+                Intent intent = new Intent(this, Community.class);
+                startActivity(intent);
+            }
+
+            else{
+                // Inform the user that WiFi access is required to access the community
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("WiFi Connection Needed");
+
+                // Create a custom LinearLayout for the AlertDialog box that contains a TextView
+                // with custom padding, margins, and text. This is all done programmatically based
+                // on what explanation needs to be shown at the given point in time.
+                LinearLayout layout = new LinearLayout(this);
+                layout.setOrientation(LinearLayout.VERTICAL);
+                final TextView text = new TextView(this);
+                text.setPadding(30, 30, 30, 30);
+                text.setText("You will require WiFi connectivity to use this feature. " +
+                        "Please check your network settings.");
+                layout.addView(text);
+                builder.setView(layout);
+                builder.setPositiveButton("Change Network Settings", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        // Send user to their network settings
+                        Intent network_settings = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                        startActivity(network_settings);
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        // Close out of the dialog
+                        dialogInterface.cancel();
+                    }
+                });
+                builder.show();
+
+            }
+
         }
         return super.onOptionsItemSelected(item);
     }
