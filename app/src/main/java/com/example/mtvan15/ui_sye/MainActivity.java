@@ -19,7 +19,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.wifi.WifiManager;
-import android.net.wifi.WifiInfo;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
@@ -89,14 +88,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float sizeMagnitude = 1f;
 
     // Booleans to check whether certain sensors are or are not enabled in the application
-    // These booleans control conditional logic, especially related to drawSomething( ) as well
-    // as enableSensor( )
+    // These booleans control conditional logic, especially related to drawSomething() as well
+    // as enableSensor()
     private boolean gyroIsEnabled = true;
     private boolean touchIsEnabled = false;
     private boolean settings = false;
     private boolean audioThread = false;
 
-    // Setup basic UI elements for the MainActivity screen. This includes a canvas, a bitmap,
+    // Initialize basic UI elements for the MainActivity screen. This includes a canvas, a bitmap,
     // as well as an image view.
     private Canvas canvas;
     private Paint paint;
@@ -113,11 +112,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // Keep a reference to a the spiral and radial classes for animation purposes
     // These keep track of points internally, and create subsequent drawing coordinates
-    // Based on internal parameters and parametrics.
+    // Based on internal parameters.
     private Spiral spiral;
     private Radial radial;
 
-    // Important drawing elements for the canvas (parameters)
+    // Important drawing elements and their initial values for the canvas
     private int color[] = {0, 0, 0};
     private int sizeRadius = 1;
     private int opacity = 0;
@@ -162,9 +161,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     String strokeType;
 
     Thread audioThreadRef;
-
-    // Declare a NetworkInfo object to capture Wi-Fi network information
-    WifiInfo wifi_info;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -228,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Settings = True represents navigation to MainActivity FROM the Settings Activity.
         // Settings = False represents the current state of the application in MainActivity.
         // This variable was implemented to allow for a consistent drawing experience regardless
-        // of navigation patterns or frequency there of.
+        // of navigation patterns or frequency thereof.
         if (settings) {
             begin = true;
             settings = false;
@@ -246,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
 
-        // Register a listener for the proximity sensory
+        // Register a listener for the proximity sensor.
         sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
         // Register a listener for the gyroscope sensor
         sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
@@ -286,8 +282,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
-        // Setup Firebase Storage by getting an instance of the databse with a particular reference
-        // or identifer. The myRef object takes sa specific input parameter representing a key
+        // Setup Firebase Storage by getting an instance of the database with a particular reference
+        // or identifier. The myRef object takes a specific input parameter representing a key
         // (corresponding to data) that wants to actively be retrieved.
         mStorageRef = FirebaseStorage.getInstance().getReference();
         DatabaseReference myRef = database.getReference("message");
